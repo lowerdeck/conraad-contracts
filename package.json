@@ -1,0 +1,42 @@
+{
+  "name": "conraad-contracts",
+  "version": "1.0.0",
+  "description": "Contracts engine for Conraad.",
+  "author": "Joost Lubach",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "module": "./dist/esm/index.js",
+      "default": "./dist/cjs/index.js"
+    }
+  },
+  "scripts": {
+    "build": "npm run clean && npm run build:tsc",
+    "build:tsc": "npm run build:tsc:esm && npm run build:tsc:cjs",
+    "build:tsc:esm": "tsc -p tsconfig.prod.json --module es2022 --outDir dist/esm --declarationDir dist/types",
+    "build:tsc:cjs": "tsc -p tsconfig.prod.json --module commonjs --outDir dist/cjs --declaration false --declarationMap false",
+    "clean": "rimraf dist",
+    "lint": "eslint src --ext .ts",
+    "check": "tsc -p . --noEmit",
+    "test": "NODE_ENV=test jest --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "@types/lodash": "^4.17.20",
+    "js-yaml": "^4.1.1",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@jsep-plugin/object": "^1.2.2",
+    "@jsep-plugin/spread": "^1.0.3",
+    "jest": "^30.2.0",
+    "jsep": "^1.3.9",
+    "lodash": "^4.17.21",
+    "ytil": "workspace:*",
+    "zod": "^4.1.5"
+  }
+}
