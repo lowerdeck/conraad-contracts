@@ -9,10 +9,10 @@ export const definitionListItem = z.object({
 
 export const definitionListSection = z.object({
   ...contractSectionCommon,
-  type:     z.literal('definitions'),
+  type:     z.literal('definition-list'),
   preamble: z.string(),
   items:    z.array($(definitionListItem)),
 })
 
-export type DefinitionsSectionTemplate = z.output<typeof definitionListSection>
+export type DefinitionListSection = z.output<typeof definitionListSection>
 export type DefinitionListItem = z.output<typeof definitionListItem>

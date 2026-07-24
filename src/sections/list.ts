@@ -14,10 +14,11 @@ export const listItem = z.preprocess(val => {
 
 export const listSection = z.object({
   ...contractSectionCommon,
-  type:     z.literal('list'),
-  preamble: z.string(),
-  items:    z.array($(listItem)),
+  type:       z.literal('list'),
+  preamble:   z.string(),
+  list_style: z.enum(['ordered', 'unordered']).optional(),
+  items:      z.array($(listItem)),
 })
 
-export type ListSectionTemplate = z.output<typeof listSection>
+export type ListSection = z.output<typeof listSection>
 export type ListItem = z.output<typeof listItem>

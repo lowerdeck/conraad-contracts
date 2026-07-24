@@ -22,6 +22,6 @@ export function $<T extends z.ZodType<any>>(base: T) {
   ])
 }
 
-export type Switch<T extends z.ZodType<any>> = z.output<ReturnType<typeof $switch<T>>>
-export type If<T extends z.ZodType<any>> = z.output<ReturnType<typeof $if<T>>>
-export type Dynamic<T extends z.ZodType<any>> = z.output<ReturnType<typeof $<T>>>
+export type Switch<T> = z.output<ReturnType<typeof $switch<z.ZodType<T>>>>
+export type If<T> = z.output<ReturnType<typeof $if<z.ZodType<T>>>>
+export type Dynamic<T> = z.output<ReturnType<typeof $<z.ZodType<T>>>>
