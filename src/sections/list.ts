@@ -16,7 +16,7 @@ export const listSection = z.object({
   ...contractSectionCommon,
   type:       z.literal('list'),
   preamble:   z.string(),
-  list_style: z.enum(['ordered', 'unordered']).optional(),
+  list_style: z.enum(['ordered', 'unordered']).default('ordered'),
   items:      z.array($(listItem)),
 })
 
