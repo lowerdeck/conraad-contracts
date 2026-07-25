@@ -27,6 +27,18 @@ export class Evaluator {
 
   // #region Interface
 
+  public evaluateText(markdown: string): string {
+    return markdown.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
+      try {
+        const result = this.evaluateExpression(expression)
+        return result === null || result === undefined ? '' : String(result)
+      } catch (error) {
+        const message = errorMessage(error)
+        throw new EvaluatorError(message, expression, error)
+      }
+    })
+  }
+
   public evaluateExpression<T>(expression: string): T | null {
     expression = expression.trim()
     if (expression === '') { return null }
