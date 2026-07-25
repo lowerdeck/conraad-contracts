@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { contractSectionCommon } from './common'
+import { $if } from './conditional'
 import { $ } from './dynamic'
 
 export const listItem = z.preprocess(val => {
@@ -15,9 +16,9 @@ export const listItem = z.preprocess(val => {
 export const listSection = z.object({
   ...contractSectionCommon,
   type:       z.literal('list'),
-  preamble:   z.string(),
+  preamble:   $if(z.string()),
   list_style: z.enum(['ordered', 'unordered']).default('ordered'),
-  items:      z.array($(listItem)),
+  items:      z.array($if($(listItem))),
 })
 
 export type ListSection = z.output<typeof listSection>
