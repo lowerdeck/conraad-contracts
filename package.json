@@ -39,6 +39,7 @@
     "jest": "^30.2.0",
     "jsep": "^1.3.9",
     "lodash": "^4.17.21",
+    "unicode": "workspace:*",
     "ytil": "workspace:*",
     "zod": ">=4"
   }

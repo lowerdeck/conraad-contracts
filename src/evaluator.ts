@@ -1,5 +1,6 @@
 import { Property } from '@jsep-plugin/object'
 import { SpreadElement } from '@jsep-plugin/spread'
+import { StringStream } from 'unicode'
 import { errorMessage, isFunction } from 'ytil'
 import { blacklist, global, jsep } from './jsep'
 
@@ -14,7 +15,7 @@ export class Evaluator {
   private readonly options: Required<EvaluatorOptions>
 
   constructor(
-    private readonly data: Record<string, any>,
+    private readonly delegate: EvaluatorDelegate,
     options: EvaluatorOptions = {},
   ) {
     this.options = {
@@ -39,7 +40,7 @@ export class Evaluator {
     })
   }
 
-  public evaluateExpression<T>(expression: string): T | null {
+  public evaluateExpression(expression: string): unknown {
     expression = expression.trim()
     if (expression === '') { return null }
 
@@ -48,17 +49,94 @@ export class Evaluator {
     }
 
     try {
-      const ast = jsep(`(${expression})`)
+      const [mainExpr, filterSegments] = this.splitOnPipes(expression)
+      const ast = jsep(`(${mainExpr})`)
 
       // Validate + gather node count/depth
       const stats = {nodes: 0}
       this.validate(ast, stats, 0)
 
-      return this.evaluateNode(ast, 0) as T
+      let result: unknown = this.evaluateNode(ast, 0)
+      if (filterSegments.length === 0) {
+        const autoFilter = this.delegate.autoFilter(result)
+        if (autoFilter != null) {
+          filterSegments.push(autoFilter)
+        }
+      }
+
+      for (const filterSegment of filterSegments) {
+        const {name, argAsts} = this.parseFilterSegment(filterSegment)
+        for (const argAst of argAsts) {
+          this.validate(argAst, stats, 0)
+        }
+        const args = argAsts.map(argAst => this.evaluateNode(argAst, 0))
+        result = this.delegate.runFilter(name, result, args)
+      }
+
+      return result
     } catch (error) {
       const message = errorMessage(error)
       throw new EvaluatorError(message, expression, error)
     }
+  }
+
+  // #endregion
+
+  // #region Filters
+
+  private splitOnPipes(expression: string): [string, string[]] {
+    const stream = new StringStream(expression)
+    const segments: string[] = []
+    let depth = 0
+
+    stream.markStart()
+
+    while (!stream.eos) {
+      const ch = stream.peek()
+      if (ch === '(' || ch === '[' || ch === '{') {
+        depth++
+        stream.next()
+      } else if (ch === ')' || ch === ']' || ch === '}') {
+        depth--
+        stream.next()
+      } else if (ch === '"' || ch === "'") {
+        stream.next() // opening quote
+        while (!stream.eos && stream.peek() !== ch) {
+          if (stream.peek() === '\\') { stream.next() } // skip escape
+          stream.next()
+        }
+        stream.next() // closing quote
+      } else if (ch === '|' && depth === 0) {
+        if (stream.peek(2) === '||') {
+          stream.next(2)
+        } else {
+          segments.push(stream.current().trim())
+          stream.next()
+          stream.markStart()
+        }
+      } else {
+        stream.next()
+      }
+    }
+
+    if (stream.current().trim() !== '') {
+      segments.push(stream.current().trim())
+    }
+
+    const [expr = '', ...filters] = segments
+    return [expr, filters]
+  }
+
+  private parseFilterSegment(segment: string): {name: string, argAsts: jsep.Expression[]} {
+    segment = segment.trim()
+    const parenIdx = segment.indexOf('(')
+    if (parenIdx === -1) {
+      return {name: segment, argAsts: []}
+    }
+
+    const name = segment.slice(0, parenIdx).trim()
+    const callAst = jsep(`${name}${segment.slice(parenIdx)}`) as jsep.CallExpression
+    return {name, argAsts: (callAst.arguments ?? []) as jsep.Expression[]}
   }
 
   // #endregion
@@ -147,7 +225,7 @@ export class Evaluator {
         throw new Error(`Function not allowed: ${name}`)
       }
 
-      const fn = this.data[name] ?? global[name]
+      const fn = this.delegate.resolveVariable(name) ?? global[name]
       if (!isFunction(fn)) {
         throw new Error(`Function not found: ${name}`)
       }
@@ -214,7 +292,8 @@ export class Evaluator {
 
     case 'Identifier': {
       const expr = node as jsep.Identifier
-      if (expr.name in this.data) { return this.data[expr.name] }
+      const value = this.delegate.resolveVariable(expr.name)
+      if (value !== undefined) { return value }
       if (expr.name in global) { return global[expr.name] }
       return undefined
     }
@@ -295,9 +374,9 @@ export class Evaluator {
     case 'CallExpression': {
       const expr = node as jsep.CallExpression
       const name = expr.callee.name as string
-      const fn = this.data[name] ?? global[name]
-      if (fn == null) {
-        throw new Error(`Unkown function: ${name}`)
+      const fn = this.delegate.resolveVariable(name) ?? global[name]
+      if (!isFunction(fn)) {
+        throw new Error(`Unknown function: ${name}`)
       }
 
       const args = (expr.arguments ?? []).map((a: any) =>
@@ -362,8 +441,10 @@ export interface EvaluatorOptions {
   nullSafeMember?: boolean
 }
 
-export interface EvaluateStructureOptions {
-  onExpression?: (expression: string, evaluated: any) => void
+export interface EvaluatorDelegate {
+  resolveVariable: (name: string) => unknown,
+  runFilter: (name: string, value: unknown, args: unknown[]) => unknown,
+  autoFilter: (value: unknown) => string | undefined,
 }
 
 export class EvaluatorError extends Error {
