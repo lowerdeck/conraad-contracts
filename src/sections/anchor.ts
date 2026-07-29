@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export function $anchor<T extends z.ZodType<any>>(base: T) {
+export function $anchor<T extends z.ZodType<any>>(base: T): z.ZodType<Anchor<z.output<T>>> {
   return z.union([
     z.intersection(
       z.object({
@@ -13,4 +13,6 @@ export function $anchor<T extends z.ZodType<any>>(base: T) {
 }
 
 
-export type Anchor<T> = z.output<ReturnType<typeof $anchor<z.ZodType<T>>>>
+export type Anchor<T> = {
+  $anchor?: string
+} & T
