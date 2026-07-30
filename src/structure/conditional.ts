@@ -12,13 +12,15 @@ export function $if<T extends z.ZodType<any>>(base: T) {
   ])
 }
 
-export function isConditional<T>(value: If<T>): value is Conditional<T> {
-  return isPlainObject(value) && '$if' in value
-}
-
 export type Conditional<T> = {
   $if: string
   then: T
   else?: T
 }
 export type If<T> = Conditional<T> | T
+
+export namespace Conditional {
+  export function is<T>(value: If<T>): value is Conditional<T> {
+    return isPlainObject(value) && '$if' in value && 'then' in value
+  }
+}
