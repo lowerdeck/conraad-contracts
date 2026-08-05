@@ -3,6 +3,7 @@ import { SpreadElement } from '@jsep-plugin/spread'
 import { StringStream } from 'unicode'
 import { errorMessage, isFunction } from 'ytil'
 import { blacklist, global, jsep } from './jsep'
+import { MissingValue } from './missing-value'
 
 // Type declarations for jsep plugin types
 interface ObjectExpression extends jsep.Expression {
@@ -31,8 +32,11 @@ export class Evaluator {
   public evaluateText(markdown: string): string {
     return markdown.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
       try {
-        const result = this.evaluateExpression(expression)
-        return result === null || result === undefined ? '' : String(result)
+        const result = this.delegate.evaluateExpression != null
+          ? this.delegate.evaluateExpression(expression)
+          : this.evaluateExpression(expression)
+
+        return result == null ? '' : String(result)
       } catch (error) {
         const message = errorMessage(error)
         throw new EvaluatorError(message, expression, error)
@@ -49,7 +53,7 @@ export class Evaluator {
     }
 
     try {
-      const [mainExpr, filterSegments] = this.splitOnPipes(expression)
+      const [mainExpr, filterSegments, requiredLabel] = this.preParseExpression(expression)
       const ast = jsep(`(${mainExpr})`)
 
       // Validate + gather node count/depth
@@ -57,6 +61,10 @@ export class Evaluator {
       this.validate(ast, stats, 0)
 
       let result: unknown = this.evaluateNode(ast, 0)
+      if (result == null && requiredLabel != null) {
+        return new MissingValue(mainExpr, requiredLabel)
+      }
+
       if (filterSegments.length === 0) {
         const autoFilter = this.delegate.autoFilter(result)
         if (autoFilter != null) {
@@ -84,9 +92,11 @@ export class Evaluator {
 
   // #region Filters
 
-  private splitOnPipes(expression: string): [string, string[]] {
+  private preParseExpression(expression: string): [string, string[], string | null] {
     const stream = new StringStream(expression)
     const segments: string[] = []
+    let requiredLabel: string | null = null
+    
     let depth = 0
 
     stream.markStart()
@@ -114,6 +124,15 @@ export class Evaluator {
           stream.next()
           stream.markStart()
         }
+      } else if (ch === '!' && depth === 0 && stream.peek(2) !== '!!') {
+        if (stream.current().trim() !== '') {
+          segments.push(stream.current().trim())
+        }
+
+        stream.next()
+        stream.markStart()
+        stream.eatUntilEos()
+        requiredLabel = stream.current().trim()
       } else {
         stream.next()
       }
@@ -124,7 +143,7 @@ export class Evaluator {
     }
 
     const [expr = '', ...filters] = segments
-    return [expr, filters]
+    return [expr, filters, requiredLabel]
   }
 
   private parseFilterSegment(segment: string): {name: string, argAsts: jsep.Expression[]} {
@@ -442,6 +461,7 @@ export interface EvaluatorOptions {
 }
 
 export interface EvaluatorDelegate {
+  evaluateExpression?: (expression: string) => unknown,
   resolveVariable: (name: string) => unknown,
   runFilter: (name: string, value: unknown, args: unknown[]) => unknown,
   autoFilter: (value: unknown) => string | undefined,

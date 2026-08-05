@@ -1,4 +1,5 @@
 export * from './evaluator'
+export * from './missing-value'
 export * from './jsep'
 export * from './notice'
 export * from './structure'
