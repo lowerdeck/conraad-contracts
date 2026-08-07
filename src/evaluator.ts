@@ -33,7 +33,7 @@ export class Evaluator {
     return markdown.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
       try {
         const result = this.delegate.evaluateExpression != null
-          ? this.delegate.evaluateExpression(expression)
+          ? this.delegate.evaluateExpression(expression, this)
           : this.evaluateExpression(expression)
 
         return result == null ? '' : String(result)
@@ -461,7 +461,7 @@ export interface EvaluatorOptions {
 }
 
 export interface EvaluatorDelegate {
-  evaluateExpression?: (expression: string) => unknown,
+  evaluateExpression?: (expression: string, evaluator: Evaluator) => unknown,
   resolveVariable: (name: string) => unknown,
   runFilter: (name: string, value: unknown, args: unknown[]) => unknown,
   autoFilter: (value: unknown) => string | undefined,

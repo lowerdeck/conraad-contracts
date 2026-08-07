@@ -1,4 +1,4 @@
-import { objectEntries } from 'ytil'
+import { isPlainObject, objectEntries } from 'ytil'
 import { z } from 'zod'
 
 export function $optional<T extends z.ZodType<any>>(base: T) {
@@ -18,9 +18,9 @@ export function $switch<T extends z.ZodType<any>>(base: T) {
 
 export function $<T extends z.ZodType<any>>(base: T) {
   return z.union([
-    base,
     $optional(base),
     $switch(base),
+    base,
   ])
 }
 
@@ -48,7 +48,8 @@ export namespace Dynamic {
 
 export namespace Switch {
   export function is<T>(value: Dynamic<T>): value is Switch<T> {
-    return typeof value === 'object' && value !== null && '$switch' in value
+    if (!isPlainObject(value)) { return false }
+    return '$switch' in value && typeof value.$switch === 'string'
   }
 
   export function variants<T>(value: Switch<T>): T[] {
@@ -63,6 +64,7 @@ export namespace Switch {
 
 export namespace Optional {
   export function is<T>(value: Dynamic<T>): value is Optional<T> {
-    return typeof value === 'object' && value !== null && '$optional' in value
+    if (!isPlainObject(value)) { return false }
+    return '$optional' in value && typeof value.$optional === 'string'
   }
 }
