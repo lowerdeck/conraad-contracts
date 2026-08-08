@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { calculation } from './calculations'
 import { input } from './input'
 
 export const contractSectionCommon = {
@@ -7,4 +8,5 @@ export const contractSectionCommon = {
   counter:      z.string().optional(),
   render_title: z.boolean().default(true),
   inputs:       z.record(z.string(), input).default({}),
+  calculated:   z.record(z.string(), calculation).default({}),
 }
