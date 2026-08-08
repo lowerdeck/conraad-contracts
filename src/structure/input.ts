@@ -32,3 +32,4 @@ export const input = z.discriminatedUnion('type', [
   textInput,
   numberInput,
 ])
+export type Input = z.output<typeof input>

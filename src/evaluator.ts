@@ -41,6 +41,10 @@ export class Evaluator {
         const message = errorMessage(error)
         throw new EvaluatorError(message, expression, error)
       }
+    }).replace(/\{\@(.+?)(?:\s+(.+?))?\s*\}/g, (match, name, args) => {
+      if (this.delegate.evaluateDirective == null) { return match }
+      const value = this.delegate.evaluateDirective(name, args)
+      return value == null ? '' : String(value)
     })
   }
 
@@ -462,6 +466,7 @@ export interface EvaluatorOptions {
 
 export interface EvaluatorDelegate {
   evaluateExpression?: (expression: string, evaluator: Evaluator) => unknown,
+  evaluateDirective?: (name: string, args: string) => unknown,
   resolveVariable: (name: string) => unknown,
   runFilter: (name: string, value: unknown, args: unknown[]) => unknown,
   autoFilter: (value: unknown) => string | undefined,
