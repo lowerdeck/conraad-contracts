@@ -1,24 +1,51 @@
 import { z } from 'zod'
 
-export const variableCommon = {
-  name:  z.string().max(255),
-  label: z.string().max(255),
-}
+const variableCommon = z.object({
+  name:         z.string().max(64).min(1),
+  label:        z.string().max(64).min(1),
+  instructions: z.string().max(1024).min(1).optional(),
+})
 
 export const choiceOption = z.object({
   value: z.string().max(255),
   label: z.string().max(255),
 })
 
-export const textVariable = z.object({...variableCommon, type: z.literal('text'), default: z.string().optional()})
-export const numberVariable = z.object({...variableCommon, type: z.literal('number'), default: z.number().optional()})
-export const booleanVariable = z.object({...variableCommon, type: z.literal('boolean'), default: z.boolean().optional()})
-export const choiceVariable = z.object({
-  ...variableCommon,
-  type:    z.literal('choice'),
-  options: z.array(choiceOption).default([]),
+export const textVariable = z.object({
+  type:    z.literal('text'),
   default: z.string().optional(),
+
+  min_length: z.int().nonnegative().optional(),
+  max_length: z.int().nonnegative().optional(),
+}).extend(variableCommon.shape)
+
+export const numberVariable = z.object({
+  type:    z.literal('number'),
+  default: z.number().optional(),
+
+  integer: z.boolean().default(false),
+  min:     z.number().optional(),
+  max:     z.number().optional(),
+}).extend(variableCommon.shape)
+
+export const booleanVariable = z.object({
+  type:    z.literal('boolean'),
+  default: z.boolean().optional(),
+}).extend(variableCommon.shape)
+
+export const choiceVariable = z.object({
+  type:    z.literal('choice'),
+  default: z.string().optional(),
+  options: z.array(choiceOption).default([]),
 })
+  .extend(variableCommon.shape)
+  .refine(variable => {
+    if (variable.default !== undefined) {
+      return variable.options.some(it => it.value === variable.default)
+    } else {
+      return true
+    }
+  }, "Default value must be one of the options")
 
 export const variable = z.discriminatedUnion('type', [
   textVariable,
