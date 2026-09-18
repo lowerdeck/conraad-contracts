@@ -2,11 +2,13 @@ import { z } from 'zod'
 import { $anchor, Anchor } from './anchor'
 import { contractSectionCommon } from './common'
 import { $if, If } from './conditional'
+import { condition, Condition } from './condition'
 import { $, Dynamic } from './dynamic'
 
 export function listItem(level: number): z.ZodType<ListItem> {
   return z.object({
-    text: z.string(),
+    text:      z.string(),
+    condition: condition.optional(),
     ...(level < 6 && {
       items: z.array($if($($anchor(listItem(level + 1))))).optional(),
     }),
@@ -26,5 +28,6 @@ export type ListSection = z.output<typeof listSection>
 
 export interface ListItem {
   text: string
+  condition?: Condition
   items?: If<Dynamic<Anchor<ListItem>>>[]
 }

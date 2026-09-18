@@ -2,11 +2,13 @@ import { z } from 'zod'
 import { $anchor } from './anchor'
 import { contractSectionCommon } from './common'
 import { $if } from './conditional'
+import { condition } from './condition'
 import { $ } from './dynamic'
 
 export const definitionListItem = z.object({
-  term: z.string().max(255),
-  body: z.string(),
+  term:      z.string().max(255),
+  body:      z.string(),
+  condition: condition.optional(),
 })
 
 export const definitionListSection = z.object({
