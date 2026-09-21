@@ -33,6 +33,11 @@ export const booleanVariable = z.object({
   default: z.boolean().optional(),
 }).extend(variableCommon.shape)
 
+export const datetimeVariable = z.object({
+  type:    z.literal('datetime'),
+  default: z.string().optional(),
+}).extend(variableCommon.shape)
+
 export const choiceVariable = z.object({
   type:    z.literal('choice'),
   default: z.string().optional(),
@@ -51,6 +56,7 @@ export const variable = z.discriminatedUnion('type', [
   textVariable,
   numberVariable,
   booleanVariable,
+  datetimeVariable,
   choiceVariable,
 ])
 
@@ -63,6 +69,7 @@ export type Variable = z.output<typeof variable>
 export type TextVariable = z.output<typeof textVariable>
 export type NumberVariable = z.output<typeof numberVariable>
 export type BooleanVariable = z.output<typeof booleanVariable>
+export type DatetimeVariable = z.output<typeof datetimeVariable>
 export type ChoiceVariable = z.output<typeof choiceVariable>
 export type ChoiceOption = z.output<typeof choiceOption>
 export type VariableGroup = z.output<typeof variableGroup>
