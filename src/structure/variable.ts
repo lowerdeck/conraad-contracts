@@ -54,9 +54,15 @@ export const variable = z.discriminatedUnion('type', [
   choiceVariable,
 ])
 
+export const variableGroup = z.object({
+  group:     z.string().max(64).min(1),
+  variables: z.array(variable).default([]),
+})
+
 export type Variable = z.output<typeof variable>
 export type TextVariable = z.output<typeof textVariable>
 export type NumberVariable = z.output<typeof numberVariable>
 export type BooleanVariable = z.output<typeof booleanVariable>
 export type ChoiceVariable = z.output<typeof choiceVariable>
 export type ChoiceOption = z.output<typeof choiceOption>
+export type VariableGroup = z.output<typeof variableGroup>
