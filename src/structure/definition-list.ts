@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { $anchor } from './anchor'
-import { contractSectionCommon } from './common'
+import { body, contractSectionCommon } from './common'
 import { $conditional } from './conditional'
 
 export const definitionListItem = z.object({
@@ -11,8 +11,8 @@ export const definitionListItem = z.object({
 export const definitionListSection = z.object({
   ...contractSectionCommon,
   type:      z.literal('definition-list'),
-  preamble:  $conditional(z.string()).optional(),
-  postamble: $conditional(z.string()).optional(),
+  preamble:  $conditional(body()).optional(),
+  postamble: $conditional(body()).optional(),
   items:     z.array($conditional($anchor(definitionListItem))),
 })
 

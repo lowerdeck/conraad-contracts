@@ -1,15 +1,10 @@
+import { isPlainObject } from 'ytil'
 import { z } from 'zod'
 
-export function $anchor<T extends z.ZodType<any>>(base: T): z.ZodType<Anchor<z.output<T>>> {
-  return z.union([
-    base,
-    z.intersection(
-      z.object({
-        $anchor: z.string().max(255),
-      }),
-      base,
-    ),
-  ])
+export function $anchor<T extends z.ZodObject<any>>(base: T) {
+  return base.extend({
+    $anchor: z.string().max(255).optional(),
+  })
 }
 
 
@@ -19,6 +14,6 @@ export type Anchor<T> = T & {
 
 export namespace Anchor {
   export function is<T>(value: T | Anchor<T>): value is Anchor<T> {
-    return typeof value === 'object' && value !== null && '$anchor' in value
+    return isPlainObject(value) && '$if' in value
   }
 }
