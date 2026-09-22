@@ -1,7 +1,7 @@
 import { Property } from '@jsep-plugin/object'
 import { SpreadElement } from '@jsep-plugin/spread'
-import { StringStream } from 'unicode'
 import { errorMessage, isFunction } from 'ytil'
+import { parseExpression, parseFilterSegment } from './expressions'
 import { blacklist, global, jsep } from './jsep'
 import { MissingValue } from './missing-value'
 
@@ -12,8 +12,6 @@ interface ObjectExpression extends jsep.Expression {
 }
 
 export class Evaluator {
-
-  private readonly options: Required<EvaluatorOptions>
 
   constructor(
     private readonly delegate: EvaluatorDelegate,
@@ -26,6 +24,8 @@ export class Evaluator {
       nullSafeMember: options.nullSafeMember ?? true,
     }
   }
+
+  private readonly options: Required<EvaluatorOptions>
 
   // #region Interface
 
@@ -57,31 +57,29 @@ export class Evaluator {
     }
 
     try {
-      const [mainExpr, filterSegments, requiredLabel] = this.preParseExpression(expression)
-      const ast = jsep(`(${mainExpr})`)
+      const {mainRaw, mainParsed, filtersParsed} = parseExpression(expression)
 
       // Validate + gather node count/depth
       const stats = {nodes: 0}
-      this.validate(ast, stats, 0)
+      this.validate(mainParsed, stats, 0)
 
-      let result: unknown = this.evaluateNode(ast, 0)
-      if (result == null && requiredLabel != null) {
-        return new MissingValue(mainExpr, requiredLabel)
+      let result: unknown = this.evaluateNode(mainParsed, 0)
+      if (result == null) {
+        return new MissingValue(mainRaw)
       }
 
-      if (filterSegments.length === 0) {
+      if (filtersParsed.length === 0) {
         const autoFilter = this.delegate.autoFilter(result)
         if (autoFilter != null) {
-          filterSegments.push(autoFilter)
+          filtersParsed.push(parseFilterSegment(autoFilter))
         }
       }
 
-      for (const filterSegment of filterSegments) {
-        const {name, argAsts} = this.parseFilterSegment(filterSegment)
-        for (const argAst of argAsts) {
-          this.validate(argAst, stats, 0)
+      for (const {name, argsParsed} of filtersParsed) {
+        for (const argParsed of argsParsed) {
+          this.validate(argParsed, stats, 0)
         }
-        const args = argAsts.map(argAst => this.evaluateNode(argAst, 0))
+        const args = argsParsed.map(ast => this.evaluateNode(ast, 0))
         result = this.delegate.runFilter(name, result, args)
       }
 
@@ -90,76 +88,6 @@ export class Evaluator {
       const message = errorMessage(error)
       throw new EvaluatorError(message, expression, error)
     }
-  }
-
-  // #endregion
-
-  // #region Filters
-
-  private preParseExpression(expression: string): [string, string[], string | null] {
-    const stream = new StringStream(expression)
-    const segments: string[] = []
-    let requiredLabel: string | null = null
-    
-    let depth = 0
-
-    stream.markStart()
-
-    while (!stream.eos) {
-      const ch = stream.peek()
-      if (ch === '(' || ch === '[' || ch === '{') {
-        depth++
-        stream.next()
-      } else if (ch === ')' || ch === ']' || ch === '}') {
-        depth--
-        stream.next()
-      } else if (ch === '"' || ch === "'") {
-        stream.next() // opening quote
-        while (!stream.eos && stream.peek() !== ch) {
-          if (stream.peek() === '\\') { stream.next() } // skip escape
-          stream.next()
-        }
-        stream.next() // closing quote
-      } else if (ch === '|' && depth === 0) {
-        if (stream.peek(2) === '||') {
-          stream.next(2)
-        } else {
-          segments.push(stream.current().trim())
-          stream.next()
-          stream.markStart()
-        }
-      } else if (ch === '!' && depth === 0 && stream.peek(2) !== '!!') {
-        if (stream.current().trim() !== '') {
-          segments.push(stream.current().trim())
-        }
-
-        stream.next()
-        stream.markStart()
-        stream.eatUntilEos()
-        requiredLabel = stream.current().trim()
-      } else {
-        stream.next()
-      }
-    }
-
-    if (stream.current().trim() !== '') {
-      segments.push(stream.current().trim())
-    }
-
-    const [expr = '', ...filters] = segments
-    return [expr, filters, requiredLabel]
-  }
-
-  private parseFilterSegment(segment: string): {name: string, argAsts: jsep.Expression[]} {
-    segment = segment.trim()
-    const parenIdx = segment.indexOf('(')
-    if (parenIdx === -1) {
-      return {name: segment, argAsts: []}
-    }
-
-    const name = segment.slice(0, parenIdx).trim()
-    const callAst = jsep(`${name}${segment.slice(parenIdx)}`) as jsep.CallExpression
-    return {name, argAsts: (callAst.arguments ?? []) as jsep.Expression[]}
   }
 
   // #endregion
