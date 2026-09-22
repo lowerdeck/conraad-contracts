@@ -1,9 +1,8 @@
 import { z } from 'zod'
 import { $anchor } from './anchor'
 import { contractSectionCommon } from './common'
-import { $if } from './conditional'
 import { condition } from './condition'
-import { $ } from './dynamic'
+import { $conditional } from './conditional'
 
 export const definitionListItem = z.object({
   term:      z.string().max(255),
@@ -14,9 +13,9 @@ export const definitionListItem = z.object({
 export const definitionListSection = z.object({
   ...contractSectionCommon,
   type:      z.literal('definition-list'),
-  preamble:  $if(z.string()).optional(),
-  postamble: $if(z.string()).optional(),
-  items:     z.array($if($($anchor(definitionListItem)))),
+  preamble:  $conditional(z.string()).optional(),
+  postamble: $conditional(z.string()).optional(),
+  items:     z.array($conditional($anchor(definitionListItem))),
 })
 
 export type DefinitionListSection = z.output<typeof definitionListSection>
