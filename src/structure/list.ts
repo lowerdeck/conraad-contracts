@@ -1,13 +1,13 @@
 import { z } from 'zod'
-import { $anchor, Anchor } from './anchor'
-import { body, contractSectionCommon } from './common'
-import { $conditional, Conditional } from './conditional'
+import { anchor, conditionalBody, contractSectionCommon, expression } from './common'
 
 export function listItem(level: number): z.ZodType<ListItem> {
   return z.object({
-    text: z.string(),
+    $if:     expression().optional(),
+    $anchor: anchor().optional(),
+    text:    z.string(),
     ...(level < 6 && {
-      items: z.array($conditional($anchor(listItem(level + 1) as unknown as z.ZodObject<any>))).optional(),
+      items: z.array(listItem(level + 1)).optional(),
     }),
   }) as z.ZodType<ListItem>
 }
@@ -15,15 +15,17 @@ export function listItem(level: number): z.ZodType<ListItem> {
 export const listSection = z.object({
   ...contractSectionCommon,
   type:       z.literal('list'),
-  preamble:   $conditional(body()).optional(),
-  postamble:  $conditional(body()).optional(),
+  preamble:   conditionalBody().optional(),
+  postamble:  conditionalBody().optional(),
   list_style: z.enum(['ordered', 'unordered']).default('ordered'),
-  items:      z.array($conditional($anchor(listItem(1) as unknown as z.ZodObject<any>))),
+  items:      z.array(listItem(1)),
 })
 
 export type ListSection = z.output<typeof listSection>
 
 export interface ListItem {
+  $if?: string
+  $anchor?: string
   text: string
-  items?: Conditional<Anchor<ListItem>>[]
+  items?: ListItem[]
 }

@@ -1,19 +1,19 @@
 import { z } from 'zod'
-import { $anchor } from './anchor'
-import { body, contractSectionCommon } from './common'
-import { $conditional } from './conditional'
+import { anchor, conditionalBody, contractSectionCommon, expression } from './common'
 
 export const definitionListItem = z.object({
-  term: z.string().max(255),
-  body: z.string(),
+  $if:     expression().optional(),
+  $anchor: anchor().optional(),
+  term:    z.string().max(255),
+  body:    z.string(),
 })
 
 export const definitionListSection = z.object({
   ...contractSectionCommon,
   type:      z.literal('definition-list'),
-  preamble:  $conditional(body()).optional(),
-  postamble: $conditional(body()).optional(),
-  items:     z.array($conditional($anchor(definitionListItem))),
+  preamble:  conditionalBody().optional(),
+  postamble: conditionalBody().optional(),
+  items:     z.array(definitionListItem),
 })
 
 export type DefinitionListSection = z.output<typeof definitionListSection>

@@ -4,9 +4,7 @@ import { textSection } from './text'
 import { definitionListSection } from './definition-list'
 
 // @index
-export * from './anchor'
 export * from './common'
-export * from './conditional'
 export * from './definition-list'
 export * from './list'
 export * from './text'
