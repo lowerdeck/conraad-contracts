@@ -13,9 +13,9 @@ export function $anchor<T extends z.ZodType<any>>(base: T): z.ZodType<Anchor<z.o
 }
 
 
-export type Anchor<T> = {
+export type Anchor<T> = T & {
   $anchor?: string
-} & T
+}
 
 export namespace Anchor {
   export function is<T>(value: T | Anchor<T>): value is Anchor<T> {

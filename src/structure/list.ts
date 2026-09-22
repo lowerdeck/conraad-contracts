@@ -1,13 +1,11 @@
 import { z } from 'zod'
-import { $anchor } from './anchor'
+import { $anchor, Anchor } from './anchor'
 import { contractSectionCommon } from './common'
-import { condition } from './condition'
-import { $conditional } from './conditional'
+import { $conditional, Conditional } from './conditional'
 
 export function listItem(level: number): z.ZodType<ListItem> {
   return z.object({
-    text:      z.string(),
-    condition: condition.optional(),
+    text: z.string(),
     ...(level < 6 && {
       items: z.array($conditional($anchor(listItem(level + 1)))).optional(),
     }),
@@ -24,4 +22,8 @@ export const listSection = z.object({
 })
 
 export type ListSection = z.output<typeof listSection>
-export type ListItem = z.output<typeof listItem>
+
+export interface ListItem {
+  text: string
+  items?: Conditional<Anchor<ListItem>>[]
+}

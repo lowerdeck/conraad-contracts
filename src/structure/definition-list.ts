@@ -1,13 +1,11 @@
 import { z } from 'zod'
 import { $anchor } from './anchor'
 import { contractSectionCommon } from './common'
-import { condition } from './condition'
 import { $conditional } from './conditional'
 
 export const definitionListItem = z.object({
-  term:      z.string().max(255),
-  body:      z.string(),
-  condition: condition.optional(),
+  term: z.string().max(255),
+  body: z.string(),
 })
 
 export const definitionListSection = z.object({
