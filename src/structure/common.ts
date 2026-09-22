@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 export const contractSectionCommon = {
-  name:    z.string().max(255),
+  id:      z.uuid(),
   title:   z.string().max(255),
   counter: z.string().optional(),
 }
