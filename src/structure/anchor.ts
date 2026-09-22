@@ -2,13 +2,13 @@ import { z } from 'zod'
 
 export function $anchor<T extends z.ZodType<any>>(base: T): z.ZodType<Anchor<z.output<T>>> {
   return z.union([
+    base,
     z.intersection(
       z.object({
         $anchor: z.string().max(255),
       }),
       base,
     ),
-    base,
   ])
 }
 
