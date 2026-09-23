@@ -1,18 +1,22 @@
 import { z } from 'zod'
 
 export const contractSectionCommon = {
-  id:      z.uuid(),
-  title:   z.string().max(255),
+  id:      id(),
+  name:    z.string().max(255),
   counter: z.string().optional(),
   $if:     expression().optional(),
 }
 
-export function expression() {
-  return z.string().max(255)
+export function id() {
+  return z.string().min(1).max(32)
 }
 
-export function anchor() {
-  return z.string().max(255)
+export function identifier() {
+  return z.string().max(64)
+}
+
+export function expression() {
+  return z.string().max(1024)
 }
 
 export function body() {
