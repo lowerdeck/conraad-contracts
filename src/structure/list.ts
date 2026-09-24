@@ -9,7 +9,7 @@ export function listItem(level: number): z.ZodType<ListItem> {
     $if:  expression().optional(),
     text: z.string(),
     ...(level < 6 && {
-      items: z.array(listItem(level + 1)).optional(),
+      items: z.array(listItem(level + 1)).default([]),
     }),
   }) as z.ZodType<ListItem>
 }
