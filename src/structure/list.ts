@@ -38,7 +38,7 @@ export interface ListItem {
   id: string
   $if?: string
   text: string
-  items: ListItem[]
+  items?: ListItem[]
 }
 
 export namespace ListItem {
