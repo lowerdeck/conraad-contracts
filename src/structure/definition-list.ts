@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import { conditionalBody, contractSectionCommon, expression, id } from './common'
 
@@ -18,3 +19,15 @@ export const definitionListSection = z.object({
 
 export type DefinitionListSection = z.output<typeof definitionListSection>
 export type DefinitionListItem = z.output<typeof definitionListItem>
+
+export namespace DefinitionListItem {
+
+  export function empty(): DefinitionListItem {
+    return {
+      id:   nanoid(8),
+      term: '',
+      body: '',
+    }
+  }
+
+}

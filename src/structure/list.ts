@@ -1,3 +1,4 @@
+import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import { conditionalBody, contractSectionCommon, expression, id, identifier } from './common'
 
@@ -37,4 +38,16 @@ export interface ListItem {
   $if?: string
   text: string
   items: ListItem[]
+}
+
+export namespace ListItem {
+
+  export function empty(): ListItem {
+    return {
+      id:    nanoid(8),
+      text:  '',
+      items: [],
+    }
+  }
+
 }
