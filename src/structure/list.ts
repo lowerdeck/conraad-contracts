@@ -1,3 +1,4 @@
+import { cloneDeep } from 'lodash'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import { conditionalBody, contractSectionCommon, expression, id, identifier } from './common'
@@ -44,9 +45,17 @@ export namespace ListItem {
 
   export function empty(): ListItem {
     return {
-      id:    nanoid(8),
+      id:    nanoid(12),
       text:  '',
       items: [],
+    }
+  }
+
+  export function clone(item: ListItem, overrides: Partial<ListItem> = {}) {
+    return {
+      ...cloneDeep(item),
+      id: nanoid(12),
+      ...overrides,
     }
   }
 
