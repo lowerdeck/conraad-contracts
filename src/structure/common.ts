@@ -32,3 +32,4 @@ export function conditionalBody() {
     text: z.string(),
   })
 }
+export type ConditionalBody = z.output<ReturnType<typeof conditionalBody>>
