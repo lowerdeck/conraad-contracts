@@ -1,11 +1,12 @@
 import { cloneDeep } from 'lodash'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
-import { conditionalBody, contractSectionCommon, expression, id } from './common'
+import { conditionalBody, contractSectionCommon, id } from './common'
+import { conditional } from './conditional'
 
 export const definitionListItem = z.object({
   id:   id(),
-  $if:  expression().optional(),
+  $if:  conditional().optional(),
   term: z.string().max(255),
   body: z.string(),
 })

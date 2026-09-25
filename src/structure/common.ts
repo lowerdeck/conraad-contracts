@@ -1,11 +1,12 @@
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
+import { conditional } from './conditional'
 
 export const contractSectionCommon = {
   id:      id(),
   name:    z.string().max(255),
   counter: z.string().optional(),
-  $if:     expression().optional(),
+  $if:     conditional().optional(),
 }
 
 export function id() {
@@ -28,7 +29,7 @@ export function body() {
 
 export function conditionalBody() {
   return z.object({
-    $if:  expression().optional(),
+    $if:  conditional().optional(),
     text: z.string(),
   })
 }
