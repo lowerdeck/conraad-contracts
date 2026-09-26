@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { expression } from './common'
 
 const variableCommon = z.object({
   name:         z.string().max(64).min(1),
@@ -52,12 +53,18 @@ export const choiceVariable = z.object({
     }
   }, "Default value must be one of the options")
 
+export const calculatedVariable = z.object({
+  type:       z.literal('calculated'),
+  expression: expression(),
+}).extend(variableCommon.shape)
+
 export const variable = z.discriminatedUnion('type', [
   textVariable,
   numberVariable,
   booleanVariable,
   datetimeVariable,
   choiceVariable,
+  calculatedVariable,
 ])
 
 export const variableGroup = z.object({
@@ -72,4 +79,5 @@ export type BooleanVariable = z.output<typeof booleanVariable>
 export type DatetimeVariable = z.output<typeof datetimeVariable>
 export type ChoiceVariable = z.output<typeof choiceVariable>
 export type ChoiceOption = z.output<typeof choiceOption>
+export type CalculatedVariable = z.output<typeof calculatedVariable>
 export type VariableGroup = z.output<typeof variableGroup>
