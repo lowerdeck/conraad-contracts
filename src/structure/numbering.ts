@@ -24,17 +24,14 @@ export type Numbering = z.output<typeof numbering>
 export type NumberingLevel = Numbering['levels'][number]
 
 /**
- * What a section is numbered as.
+ * The numberings by name, which is what sections refer to them by (e.g. "Artikel" or "Bijlage").
  */
-export const numberingKind = z.enum(['article', 'appendix'])
-export type NumberingKind = z.output<typeof numberingKind>
-
-export const numberings = z.object({
-  article:  numbering.default(() => Numbering.fromPreset('article')),
-  appendix: numbering.default(() => Numbering.fromPreset('appendix')),
-})
-
+export const numberings = z.record(numberingName(), numbering)
 export type Numberings = z.output<typeof numberings>
+
+export function numberingName() {
+  return z.string().min(1).max(64)
+}
 
 export namespace Numbering {
 
@@ -73,7 +70,10 @@ export namespace Numbering {
   }
 
   export function defaults(): Numberings {
-    return numberings.parse({})
+    return {
+      Artikel: fromPreset('article'),
+      Bijlage: fromPreset('appendix'),
+    }
   }
 
 }
