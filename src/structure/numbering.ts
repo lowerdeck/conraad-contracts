@@ -94,8 +94,9 @@ const PRESETS: Record<NumberingPreset, () => NumberingLevel[]> = {
     {marker: '{1}.', nested: true},
     {marker: '{a}.', nested: true},
   ],
+  // Only in Dutch for now.
   appendix: () => [
-    {marker: '{A}.', nested: true},
+    {marker: 'Bijlage {A}', nested: true},
     {marker: '{1}.', nested: true},
     {marker: '{1}.', nested: true},
     {marker: '{a}.', nested: true},
