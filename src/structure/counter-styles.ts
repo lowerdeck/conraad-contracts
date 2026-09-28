@@ -1,6 +1,6 @@
 /**
- * Formats a counter value in one of the predefined CSS counter styles (CSS Counter Styles Level 3). Values outside a
- * style's range fall back to `decimal`, like CSS does.
+ * Formats a counter value in one of a selection of the predefined CSS counter styles (CSS Counter Styles Level 3).
+ * Values outside a style's range fall back to `decimal`, like CSS does.
  */
 export function formatCounterStyle(value: number, style: CounterStyle): string {
   const definition: CounterStyleDefinition = COUNTER_STYLES[style]
@@ -15,13 +15,21 @@ export function formatCounterStyle(value: number, style: CounterStyle): string {
   return value < 0 ? `${definition.negative ?? '-'}${padded}` : padded
 }
 
-export function isCounterStyle(style: string): style is CounterStyle {
-  return Object.hasOwn(COUNTER_STYLES, style)
-}
-
 export type CounterStyle = keyof typeof COUNTER_STYLES
 
 export const counterStyles = () => Object.keys(COUNTER_STYLES) as CounterStyle[]
+
+/**
+ * The placeholder for a style in a marker, which is how the style writes 1: `{1}`, `{a}`, `{あ}`, etc.
+ */
+export function counterStylePlaceholder(style: CounterStyle) {
+  const definition: CounterStyleDefinition = COUNTER_STYLES[style]
+  return definition.placeholder
+}
+
+export function counterStyleForPlaceholder(placeholder: string): CounterStyle | undefined {
+  return STYLES_BY_PLACEHOLDER.get(placeholder)
+}
 
 export function counterStyleSuffix(style: CounterStyle) {
   const definition: CounterStyleDefinition = COUNTER_STYLES[style]
@@ -34,7 +42,6 @@ function formatWith(value: number, definition: CounterStyleDefinition): string |
   case 'alphabetic': return alphabetic(value, definition.symbols)
   case 'additive': return additive(Math.abs(value), definition.symbols)
   case 'chinese': return chinese(Math.abs(value), definition.symbols)
-  case 'ethiopic': return ethiopic(value)
   }
 }
 
@@ -103,41 +110,16 @@ function chinese(value: number, spec: ChineseSymbols) {
   return result
 }
 
-// CSS Counter Styles 3, §7.1.3 "Ethiopic numeric".
-function ethiopic(value: number) {
-  if (value === 1) { return '፩' }
-
-  const groups: number[] = []
-  for (let rest = value; rest > 0; rest = Math.floor(rest / 100)) {
-    groups.push(rest % 100)
-  }
-
-  let result = ''
-  for (const [index, group] of groups.entries()) {
-    const mostSignificant = index === groups.length - 1
-    const omitDigits = group === 0 || (group === 1 && (mostSignificant || index % 2 === 1))
-
-    let part = omitDigits ? '' : ETHIOPIC_TENS[Math.floor(group / 10)] + ETHIOPIC_ONES[group % 10]
-    if (index % 2 === 1 && group !== 0) {
-      part += '፻'
-    } else if (index % 2 === 0 && index > 0) {
-      part += '፼'
-    }
-    result = part + result
-  }
-  return result
-}
-
 type CounterStyleDefinition = {
-  range:     [number, number]
-  suffix?:   string
-  negative?: string
-  pad?:      {length: number, symbol: string}
+  placeholder: string
+  range:       [number, number]
+  suffix?:     string
+  negative?:   string
+  pad?:        {length: number, symbol: string}
 } & (
   | {system: 'numeric' | 'alphabetic', symbols: string[]}
   | {system: 'additive', symbols: Array<[number, string]>}
   | {system: 'chinese', symbols: ChineseSymbols}
-  | {system: 'ethiopic', symbols?: never}
 )
 
 interface ChineseSymbols {
@@ -146,29 +128,11 @@ interface ChineseSymbols {
   informal: boolean
 }
 
-const ETHIOPIC_ONES = ['', '፩', '፪', '፫', '፬', '፭', '፮', '፯', '፰', '፱']
-const ETHIOPIC_TENS = ['', '፲', '፳', '፴', '፵', '፶', '፷', '፸', '፹', '፺']
-
 const INFINITE: [number, number] = [-Infinity, Infinity]
 const POSITIVE: [number, number] = [1, Infinity]
 
-// Digits in these scripts are contiguous code points starting at zero.
-function digits(zero: string) {
-  const start = zero.codePointAt(0)!
-  return Array.from({length: 10}, (_, index) => String.fromCodePoint(start + index))
-}
-
 function chars(symbols: string) {
   return Array.from(symbols)
-}
-
-function numericStyle(zero: string): CounterStyleDefinition {
-  return {system: 'numeric', range: INFINITE, symbols: digits(zero)}
-}
-
-function repeated(symbols: string, weights: number[]): Array<[number, string]> {
-  const list = chars(symbols)
-  return weights.map((weight, index) => [weight, list[index]])
 }
 
 const ROMAN: Array<[number, string]> = [
@@ -177,43 +141,20 @@ const ROMAN: Array<[number, string]> = [
   [10, 'X'], [9, 'IX'], [5, 'V'], [4, 'IV'], [1, 'I'],
 ]
 
-const ARMENIAN_WEIGHTS = [
-  9000, 8000, 7000, 6000, 5000, 4000, 3000, 2000, 1000,
-  900, 800, 700, 600, 500, 400, 300, 200, 100,
-  90, 80, 70, 60, 50, 40, 30, 20, 10,
-  9, 8, 7, 6, 5, 4, 3, 2, 1,
-]
-const UPPER_ARMENIAN = repeated('ՔՓՒՑՐՏՎՍՌՋՊՉՈՇՆՅՄՃՂՁՀԿԾԽԼԻԺԹԸԷԶԵԴԳԲԱ', ARMENIAN_WEIGHTS)
-const LOWER_ARMENIAN = UPPER_ARMENIAN.map(([weight, symbol]): [number, string] => [weight, symbol.toLowerCase()])
-
-const GEORGIAN = repeated('ჵჰჯჴხჭწძცჩშყღქფჳტსრჟპოჲნმლკითჱზვედგბა', [10000, ...ARMENIAN_WEIGHTS])
-
-const HEBREW: Array<[number, string]> = [
-  [10000, 'י׳'], [9000, 'ט׳'], [8000, 'ח׳'], [7000, 'ז׳'], [6000, 'ו׳'],
-  [5000, 'ה׳'], [4000, 'ד׳'], [3000, 'ג׳'], [2000, 'ב׳'], [1000, 'א׳'],
-  [400, 'ת'], [300, 'ש'], [200, 'ר'], [100, 'ק'],
-  [90, 'צ'], [80, 'פ'], [70, 'ע'], [60, 'ס'], [50, 'נ'], [40, 'מ'], [30, 'ל'], [20, 'כ'],
-  // 15 and 16 are written as 9+6 and 9+7 to avoid spelling the divine name.
-  [19, 'יט'], [18, 'יח'], [17, 'יז'], [16, 'טז'], [15, 'טו'],
-  [10, 'י'], [9, 'ט'], [8, 'ח'], [7, 'ז'], [6, 'ו'], [5, 'ה'], [4, 'ד'], [3, 'ג'], [2, 'ב'], [1, 'א'],
-]
-
 function cjkAdditive(
   digits: string,
   thousand: string,
   hundred: string,
   ten: string,
-  oneBeforeMarker: boolean,
   zero: string,
 ): Array<[number, string]> {
   // `digits` lists 1 through 9.
   const list = chars(digits)
-  const prefix = (digit: number) => (digit === 1 && !oneBeforeMarker ? '' : list[digit - 1])
 
   const symbols: Array<[number, string]> = []
   for (const [weight, marker] of [[1000, thousand], [100, hundred], [10, ten]] as const) {
     for (let digit = 9; digit >= 1; digit--) {
-      symbols.push([digit * weight, prefix(digit) + marker])
+      symbols.push([digit * weight, list[digit - 1] + marker])
     }
   }
   for (let digit = 9; digit >= 1; digit--) {
@@ -223,63 +164,27 @@ function cjkAdditive(
   return symbols
 }
 
-const CJK_INFORMAL_DIGITS = chars('零一二三四五六七八九')
-
+// Only styles that write 1 differently are included, so that the placeholder identifies the style.
 const COUNTER_STYLES = {
-  // Numeric
-  'decimal':              {system: 'numeric', range: INFINITE, symbols: digits('0')},
-  'decimal-leading-zero': {system: 'numeric', range: INFINITE, symbols: digits('0'), pad: {length: 2, symbol: '0'}},
-  'arabic-indic':         numericStyle('٠'),
-  'bengali':              numericStyle('০'),
-  'cambodian':            numericStyle('០'),
-  'khmer':                numericStyle('០'),
-  'cjk-decimal':          {system: 'numeric', range: INFINITE, suffix: '、', symbols: chars('〇一二三四五六七八九')},
-  'devanagari':           numericStyle('०'),
-  'gujarati':             numericStyle('૦'),
-  'gurmukhi':             numericStyle('੦'),
-  'kannada':              numericStyle('೦'),
-  'lao':                  numericStyle('໐'),
-  'malayalam':            numericStyle('൦'),
-  'mongolian':            numericStyle('᠐'),
-  'myanmar':              numericStyle('၀'),
-  'oriya':                numericStyle('୦'),
-  'persian':              numericStyle('۰'),
-  'tamil':                numericStyle('௦'),
-  'telugu':               numericStyle('౦'),
-  'thai':                 numericStyle('๐'),
-  'tibetan':              numericStyle('༠'),
+  'decimal':              {placeholder: '1', system: 'numeric', range: INFINITE, symbols: chars('0123456789')},
+  'decimal-leading-zero': {placeholder: '01', system: 'numeric', range: INFINITE, symbols: chars('0123456789'), pad: {length: 2, symbol: '0'}},
+  'lower-alpha':          {placeholder: 'a', system: 'alphabetic', range: POSITIVE, symbols: chars('abcdefghijklmnopqrstuvwxyz')},
+  'upper-alpha':          {placeholder: 'A', system: 'alphabetic', range: POSITIVE, symbols: chars('ABCDEFGHIJKLMNOPQRSTUVWXYZ')},
+  'lower-roman':          {placeholder: 'i', system: 'additive', range: [1, 3999], symbols: ROMAN.map(([weight, symbol]) => [weight, symbol.toLowerCase()])},
+  'upper-roman':          {placeholder: 'I', system: 'additive', range: [1, 3999], symbols: ROMAN},
 
-  // Additive
-  'lower-roman':    {system: 'additive', range: [1, 3999], symbols: ROMAN.map(([weight, symbol]) => [weight, symbol.toLowerCase()])},
-  'upper-roman':    {system: 'additive', range: [1, 3999], symbols: ROMAN},
-  'armenian':       {system: 'additive', range: [1, 9999], symbols: UPPER_ARMENIAN},
-  'upper-armenian': {system: 'additive', range: [1, 9999], symbols: UPPER_ARMENIAN},
-  'lower-armenian': {system: 'additive', range: [1, 9999], symbols: LOWER_ARMENIAN},
-  'georgian':       {system: 'additive', range: [1, 19999], symbols: GEORGIAN},
-  'hebrew':         {system: 'additive', range: [1, 10999], symbols: HEBREW},
-
-  // Alphabetic
-  'lower-alpha':        {system: 'alphabetic', range: POSITIVE, symbols: chars('abcdefghijklmnopqrstuvwxyz')},
-  'lower-latin':        {system: 'alphabetic', range: POSITIVE, symbols: chars('abcdefghijklmnopqrstuvwxyz')},
-  'upper-alpha':        {system: 'alphabetic', range: POSITIVE, symbols: chars('ABCDEFGHIJKLMNOPQRSTUVWXYZ')},
-  'upper-latin':        {system: 'alphabetic', range: POSITIVE, symbols: chars('ABCDEFGHIJKLMNOPQRSTUVWXYZ')},
-  'lower-greek':        {system: 'alphabetic', range: POSITIVE, symbols: chars('αβγδεζηθικλμνξοπρστυφχψω')},
-  'hiragana':           {system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをん')},
-  'hiragana-iroha':     {system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('いろはにほへとちりぬるをわかよたれそつねならむうゐのおくやまけふこえてあさきゆめみしゑひもせす')},
-  'katakana':           {system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヰヱヲン')},
-  'katakana-iroha':     {system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('イロハニホヘトチリヌルヲワカヨタレソツネナラムウヰノオクヤマケフコエテアサキユメミシヱヒモセス')},
-  'cjk-earthly-branch': {system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('子丑寅卯辰巳午未申酉戌亥')},
-  'cjk-heavenly-stem':  {system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('甲乙丙丁戊己庚辛壬癸')},
-
-  // Complex
-  'japanese-informal':     {system: 'additive', range: [-9999, 9999], suffix: '、', negative: 'マイナス', symbols: cjkAdditive('一二三四五六七八九', '千', '百', '十', false, '〇')},
-  'japanese-formal':       {system: 'additive', range: [-9999, 9999], suffix: '、', negative: 'マイナス', symbols: cjkAdditive('壱弐参四伍六七八九', '阡', '百', '拾', true, '零')},
-  'korean-hangul-formal':  {system: 'additive', range: [-9999, 9999], suffix: ', ', negative: '마이너스 ', symbols: cjkAdditive('일이삼사오육칠팔구', '천', '백', '십', true, '영')},
-  'korean-hanja-informal': {system: 'additive', range: [-9999, 9999], suffix: ', ', negative: '마이너스 ', symbols: cjkAdditive('一二三四五六七八九', '千', '百', '十', false, '零')},
-  'korean-hanja-formal':   {system: 'additive', range: [-9999, 9999], suffix: ', ', negative: '마이너스 ', symbols: cjkAdditive('壹貳參四五六七八九', '仟', '百', '拾', true, '零')},
-  'simp-chinese-informal': {system: 'chinese', range: [-9999, 9999], suffix: '、', negative: '负', symbols: {digits: CJK_INFORMAL_DIGITS, markers: chars('十百千'), informal: true}},
-  'simp-chinese-formal':   {system: 'chinese', range: [-9999, 9999], suffix: '、', negative: '负', symbols: {digits: chars('零壹贰叁肆伍陆柒捌玖'), markers: chars('拾佰仟'), informal: false}},
-  'trad-chinese-informal': {system: 'chinese', range: [-9999, 9999], suffix: '、', negative: '負', symbols: {digits: CJK_INFORMAL_DIGITS, markers: chars('十百千'), informal: true}},
-  'trad-chinese-formal':   {system: 'chinese', range: [-9999, 9999], suffix: '、', negative: '負', symbols: {digits: chars('零壹貳參肆伍陸柒捌玖'), markers: chars('拾佰仟'), informal: false}},
-  'ethiopic-numeric':      {system: 'ethiopic', range: POSITIVE, suffix: '/ '},
+  'hiragana':              {placeholder: 'あ', system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわゐゑをん')},
+  'hiragana-iroha':        {placeholder: 'い', system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('いろはにほへとちりぬるをわかよたれそつねならむうゐのおくやまけふこえてあさきゆめみしゑひもせす')},
+  'katakana':              {placeholder: 'ア', system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヰヱヲン')},
+  'katakana-iroha':        {placeholder: 'イ', system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('イロハニホヘトチリヌルヲワカヨタレソツネナラムウヰノオクヤマケフコエテアサキユメミシヱヒモセス')},
+  'cjk-earthly-branch':    {placeholder: '子', system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('子丑寅卯辰巳午未申酉戌亥')},
+  'cjk-heavenly-stem':     {placeholder: '甲', system: 'alphabetic', range: POSITIVE, suffix: '、', symbols: chars('甲乙丙丁戊己庚辛壬癸')},
+  'japanese-formal':       {placeholder: '壱', system: 'additive', range: [-9999, 9999], suffix: '、', negative: 'マイナス', symbols: cjkAdditive('壱弐参四伍六七八九', '阡', '百', '拾', '零')},
+  'korean-hangul-formal':  {placeholder: '일', system: 'additive', range: [-9999, 9999], suffix: ', ', negative: '마이너스 ', symbols: cjkAdditive('일이삼사오육칠팔구', '천', '백', '십', '영')},
+  'simp-chinese-informal': {placeholder: '一', system: 'chinese', range: [-9999, 9999], suffix: '、', negative: '负', symbols: {digits: chars('零一二三四五六七八九'), markers: chars('十百千'), informal: true}},
+  'simp-chinese-formal':   {placeholder: '壹', system: 'chinese', range: [-9999, 9999], suffix: '、', negative: '负', symbols: {digits: chars('零壹贰叁肆伍陆柒捌玖'), markers: chars('拾佰仟'), informal: false}},
 } satisfies Record<string, CounterStyleDefinition>
+
+const STYLES_BY_PLACEHOLDER = new Map(
+  counterStyles().map(style => [counterStylePlaceholder(style), style]),
+)

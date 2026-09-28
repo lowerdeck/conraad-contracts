@@ -1,10 +1,16 @@
 import { z } from 'zod'
-import { CounterStyle, counterStyleSuffix, formatCounterStyle, isCounterStyle } from './counter-styles'
+import {
+  CounterStyle,
+  counterStyleForPlaceholder,
+  counterStylePlaceholder,
+  counterStyleSuffix,
+  formatCounterStyle,
+} from './counter-styles'
 
 export const counter = z.object({
   /**
-   * The marker format. The counter is inserted at a `{style}` placeholder (any CSS counter style, e.g.
-   * `{lower-greek}.`), or else at the last `1`, `a`, `A`, `i` or `I` (e.g. `(a)` or `Artikel 1`).
+   * The marker format. The counter is inserted at a placeholder, which is how its style writes 1: `{1}.`, `({a})`,
+   * `{あ}、`, etc. Without braces, the last `1`, `a`, `A`, `i` or `I` is used (e.g. `(a)` or `Artikel 1`).
    */
   marker: z.string().max(50).default('1.'),
   start:  z.number().default(1),
@@ -23,14 +29,17 @@ export function formatMarker(index: number, counter: Counter) {
 }
 
 export function findMarkerPlaceholder(marker: string): MarkerPlaceholder | null {
-  for (const match of marker.matchAll(/\{([a-z-]+)\}/g)) {
-    if (isCounterStyle(match[1])) {
-      return {start: match.index, length: match[0].length, style: match[1]}
+  for (const match of marker.matchAll(/\{([^{}]+)\}/g)) {
+    const style = counterStyleForPlaceholder(match[1])
+    if (style != null) {
+      return {start: match.index, length: match[0].length, style}
     }
   }
 
   for (let index = marker.length - 1; index >= 0; index--) {
-    const style = SHORTHANDS[marker[index]]
+    if (!BARE_PLACEHOLDERS.includes(marker[index])) { continue }
+
+    const style = counterStyleForPlaceholder(marker[index])
     if (style != null) {
       return {start: index, length: 1, style}
     }
@@ -40,11 +49,12 @@ export function findMarkerPlaceholder(marker: string): MarkerPlaceholder | null 
 }
 
 /**
- * The default marker for a counter style, using a shorthand where available.
+ * The default marker for a counter style, e.g. `1.` or `{あ}、`.
  */
 export function counterStyleMarker(style: CounterStyle) {
-  const shorthand = Object.entries(SHORTHANDS).find(([, it]) => it === style)?.[0]
-  return `${shorthand ?? `{${style}}`}${counterStyleSuffix(style)}`
+  const placeholder = counterStylePlaceholder(style)
+  const bare = BARE_PLACEHOLDERS.includes(placeholder)
+  return `${bare ? placeholder : `{${placeholder}}`}${counterStyleSuffix(style)}`
 }
 
 export interface MarkerPlaceholder {
@@ -53,10 +63,4 @@ export interface MarkerPlaceholder {
   style:  CounterStyle
 }
 
-const SHORTHANDS: Record<string, CounterStyle | undefined> = {
-  '1': 'decimal',
-  'a': 'lower-alpha',
-  'A': 'upper-alpha',
-  'i': 'lower-roman',
-  'I': 'upper-roman',
-}
+const BARE_PLACEHOLDERS = ['1', 'a', 'A', 'i', 'I']
