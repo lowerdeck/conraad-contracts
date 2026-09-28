@@ -87,8 +87,8 @@ const PRESETS = {
   // Only in Dutch for now.
   appendix: () => ({
     levels: [
-      {marker: 'Bijlage {A}', nested: true},
-      {marker: '{1}.', nested: true},
+      {marker: 'Bijlage {A}.', nested: true},
+      {marker: '{1}.', nested: false},
       {marker: '{1}.', nested: true},
       {marker: '{a}.', nested: true},
     ],
