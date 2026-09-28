@@ -1,16 +1,15 @@
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import { conditional } from './conditional'
-import { numberingName } from './numbering'
 
 export const contractSectionCommon = {
   id:   id(),
   name: z.string().max(255),
 
   /**
-   * The name of the numbering the section is numbered in, if any.
+   * The ID of the numbering the section is numbered in, if any.
    */
-  numbering: numberingName().nullable().optional(),
+  numbering: z.string().max(32).nullable().optional(),
 
   $if: conditional().optional(),
 }

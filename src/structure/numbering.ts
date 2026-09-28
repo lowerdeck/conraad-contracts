@@ -24,14 +24,17 @@ export type Numbering = z.output<typeof numbering>
 export type NumberingLevel = Numbering['levels'][number]
 
 /**
- * The numberings by name, which is what sections refer to them by (e.g. "Artikel" or "Bijlage").
+ * A numbering as configured in a template or the organisation's settings. Sections refer to it by ID.
  */
-export const numberings = z.record(numberingName(), numbering)
-export type Numberings = z.output<typeof numberings>
+export const namedNumbering = numbering.extend({
+  id:   z.string().min(1).max(32),
+  name: z.string().min(1).max(64),
+})
 
-export function numberingName() {
-  return z.string().min(1).max(64)
-}
+export type NamedNumbering = z.output<typeof namedNumbering>
+
+export const numberings = z.array(namedNumbering)
+export type Numberings = z.output<typeof numberings>
 
 export namespace Numbering {
 
@@ -69,11 +72,12 @@ export namespace Numbering {
     return numberingPresets.find(preset => isEqual(PRESETS[preset](), numbering.levels))
   }
 
+  // Their IDs are never shown, so these can be fixed. Numberings added later get a random ID.
   export function defaults(): Numberings {
-    return {
-      Artikel: fromPreset('article'),
-      Bijlage: fromPreset('appendix'),
-    }
+    return [
+      {id: 'article', name: 'Artikelen', ...fromPreset('article')},
+      {id: 'appendix', name: 'Bijlagen', ...fromPreset('appendix')},
+    ]
   }
 
 }
