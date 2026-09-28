@@ -1,14 +1,14 @@
 import { cloneDeep } from 'lodash'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
-import { conditionalBody, contractSectionCommon, id } from './common'
+import { conditionalBody, contractSectionCommon, id, RichText, richText } from './common'
 import { Conditional, conditional } from './conditional'
 
 export function listItem(level: number): z.ZodType<ListItem> {
   return z.object({
     id:   id(),
     $if:  conditional().optional(),
-    text: z.string(),
+    text: richText(),
     ...(level < 6 && {
       items: z.array(listItem(level + 1)).optional(),
     }),
@@ -28,7 +28,7 @@ export type ListSection = z.output<typeof listSection>
 export interface ListItem {
   id: string
   $if?: Conditional
-  text: string
+  text: RichText
   items: ListItem[]
 }
 
@@ -36,7 +36,7 @@ export namespace ListItem {
 
   export function empty(): ListItem {
     return listItem(1).parse({
-      text: '',
+      text: null,
     })
   }
 

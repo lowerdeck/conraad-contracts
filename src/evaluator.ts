@@ -29,25 +29,6 @@ export class Evaluator {
 
   // #region Interface
 
-  public evaluateText(markdown: string): string {
-    return markdown.replace(/\{\{([^}]+)\}\}/g, (match, expression) => {
-      try {
-        const result = this.delegate.evaluateExpression != null
-          ? this.delegate.evaluateExpression(expression, this)
-          : this.evaluateExpression(expression)
-
-        return result == null ? '' : String(result)
-      } catch (error) {
-        const message = errorMessage(error)
-        throw new EvaluatorError(message, expression, error)
-      }
-    }).replace(/\{\@(.+?)(?:\s+(.+?))?\s*\}/g, (match, name, args) => {
-      if (this.delegate.evaluateDirective == null) { return match }
-      const value = this.delegate.evaluateDirective(name, args)
-      return value == null ? '' : String(value)
-    })
-  }
-
   public evaluateExpression(expression: string): unknown {
     expression = expression.trim()
     if (expression === '') { return null }

@@ -26,19 +26,24 @@ export function expression() {
   return z.string().max(1024)
 }
 
+export function richText() {
+  return z.any()
+}
+
 export function body() {
   return z.object({
-    text: z.string(),
+    text: richText(),
   })
 }
 
 export function conditionalBody() {
   return z.object({
     $if:  conditional().optional(),
-    text: z.string(),
+    text: richText(),
   })
 }
 
 export type ConditionalBody = z.output<ReturnType<typeof conditionalBody>>
 export type Identifier = string
 export type Expression = string
+export type RichText = z.output<ReturnType<typeof richText>>
