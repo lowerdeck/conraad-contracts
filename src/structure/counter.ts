@@ -10,9 +10,9 @@ import {
 export const counter = z.object({
   /**
    * The marker format. The counter is inserted at a placeholder, which is how its style writes 1: `{1}.`, `({a})`,
-   * `{あ}、`, etc. Without braces, the last `1`, `a`, `A`, `i` or `I` is used (e.g. `(a)` or `Artikel 1`).
+   * `{あ}、`.
    */
-  marker: z.string().max(50).default('1.'),
+  marker: z.string().max(50).default('{1}.'),
   start:  z.number().default(1),
   nested: z.boolean().default(true),
 })
@@ -35,16 +35,6 @@ export function findMarkerPlaceholder(marker: string): MarkerPlaceholder | null 
       return {start: match.index, length: match[0].length, style}
     }
   }
-
-  for (let index = marker.length - 1; index >= 0; index--) {
-    if (!BARE_PLACEHOLDERS.includes(marker[index])) { continue }
-
-    const style = counterStyleForPlaceholder(marker[index])
-    if (style != null) {
-      return {start: index, length: 1, style}
-    }
-  }
-
   return null
 }
 
@@ -53,8 +43,7 @@ export function findMarkerPlaceholder(marker: string): MarkerPlaceholder | null 
  */
 export function counterStyleMarker(style: CounterStyle) {
   const placeholder = counterStylePlaceholder(style)
-  const bare = BARE_PLACEHOLDERS.includes(placeholder)
-  return `${bare ? placeholder : `{${placeholder}}`}${counterStyleSuffix(style)}`
+  return `{${placeholder}}${counterStyleSuffix(style)}`
 }
 
 export interface MarkerPlaceholder {
@@ -62,5 +51,3 @@ export interface MarkerPlaceholder {
   length: number
   style:  CounterStyle
 }
-
-const BARE_PLACEHOLDERS = ['1', 'a', 'A', 'i', 'I']
