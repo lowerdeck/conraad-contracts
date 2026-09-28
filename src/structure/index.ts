@@ -46,10 +46,7 @@ export namespace ContractSection {
 
 export const contractStructure = z.object({
   sections:   z.array(contractSection).default([]),
-  /**
-   * Absent for new templates, which get the organisation's numberings.
-   */
-  numberings: numberings.optional(),
+  numberings: numberings.default({}),
   variables:  z.array(variableGroup).default([]),
 })
 

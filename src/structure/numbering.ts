@@ -1,57 +1,33 @@
-import { isEqual } from 'lodash'
+import { clamp, isEqual } from 'lodash'
+import { objectEntries } from 'ytil'
 import { z } from 'zod'
+import { id } from './common'
 
-/**
- * A numbering system, like the one for articles or for appendices. Sections are numbered at the first level, the items
- * of list sections at the levels below it.
- */
-export const numbering = z.object({
-  /**
-   * The levels, from the top down. Levels beyond the last one use the last one.
-   */
-  levels: z.array(z.object({
-    marker: z.string().max(50),
-
-    /**
-     * Whether to combine the marker with that of the level above, as in `1.1.` or `1(a)`. Only has effect if the
-     * markers allow it, see `canNestMarkers`.
-     */
-    nested: z.boolean().default(true),
-  })).min(1),
+export const numberingLevel = z.object({
+  marker: z.string().max(50),
+  nested: z.boolean().default(true),
 })
+
+export const numbering = z.object({
+  id:     id(),
+  name:   z.string().max(255),
+  levels: z.array(numberingLevel).min(1),
+})
+
+export const numberings = z.record(z.string(), numbering)
 
 export type Numbering = z.output<typeof numbering>
-export type NumberingLevel = Numbering['levels'][number]
-
-/**
- * A numbering as configured in a template or the organisation's settings. Sections refer to it by ID.
- */
-export const namedNumbering = numbering.extend({
-  id:   z.string().min(1).max(32),
-  name: z.string().min(1).max(64),
-})
-
-export type NamedNumbering = z.output<typeof namedNumbering>
-
-export const numberings = z.array(namedNumbering)
+export type NumberingLevel = z.output<typeof numberingLevel>
 export type Numberings = z.output<typeof numberings>
 
 export namespace Numbering {
 
-  export function level(numbering: Numbering, depth: number): NumberingLevel {
-    return numbering.levels[Math.min(depth, numbering.levels.length - 1)]
-  }
-
-  /**
-   * Formats the number at the given path of (1-based) values, one per level. E.g. `[1, 2, 1]` gives `1.2.a.` for
-   * the default article numbering.
-   */
-  export function format(numbering: Numbering, path: number[]): string {
+  export function format(numbering: NumberingPreset, path: number[]): string {
     let result = ''
     let parentMarker: string | null = null
 
     for (const [depth, value] of path.entries()) {
-      const {marker, nested} = level(numbering, depth)
+      const {marker, nested} = numbering.levels[clamp(depth, 0, numbering.levels.length - 1)]
       const nest = parentMarker != null && nested && canNestMarkers(parentMarker, marker)
 
       result = nest ? formatNestedMarker(result, marker, value) : formatMarker(marker, value)
@@ -61,73 +37,97 @@ export namespace Numbering {
     return result
   }
 
-  export function fromPreset(preset: NumberingPreset): Numbering {
-    return {levels: PRESETS[preset]()}
+  export function presets() {
+    return objectEntries(PRESETS)
   }
 
-  /**
-   * The preset the numbering is structurally equal to, if any.
-   */
-  export function preset(numbering: Numbering): NumberingPreset | undefined {
-    return numberingPresets.find(preset => isEqual(PRESETS[preset](), numbering.levels))
+  export function example(preset: NumberingPreset) {
+    return preset.levels.map((_, depth) => {
+      return Numbering.format(preset, Array(depth + 1).fill(1))
+    }).join(' · ')
+  }
+
+  export function preset(name: NumberingPresetName): NumberingPreset {
+    return PRESETS[name]()
   }
 
   // Their IDs are never shown, so these can be fixed. Numberings added later get a random ID.
   export function defaults(): Numberings {
-    return [
-      {id: 'article', name: 'Artikelen', ...fromPreset('article')},
-      {id: 'appendix', name: 'Bijlagen', ...fromPreset('appendix')},
-    ]
+    return {
+      article:  {id: 'article', name: 'Artikelen', ...preset('article')},
+      appendix: {id: 'appendix', name: 'Bijlagen', ...preset('appendix')},
+    }
+  }
+
+  export function detectPreset(preset: NumberingPreset): NumberingPresetName | null {
+    for (const [name, value] of objectEntries(PRESETS)) {
+      if (isEqual(value(), preset)) {
+        return name
+      }
+    }
+
+    return null
   }
 
 }
 
 // #region Presets
 
-export const numberingPresets = ['article', 'appendix', 'legal', 'chinese', 'japanese', 'korean'] as const
-export type NumberingPreset = typeof numberingPresets[number]
+export type NumberingPreset = Omit<Numbering, 'id' | 'name'>
+export type NumberingPresetName = keyof typeof PRESETS
 
-// The CJK presets follow the usual structure of contracts there, with each level written on its own.
-const PRESETS: Record<NumberingPreset, () => NumberingLevel[]> = {
-  article: () => [
-    {marker: '{1}.', nested: true},
-    {marker: '{1}.', nested: true},
-    {marker: '{a}.', nested: true},
-  ],
+const PRESETS = {
+  article: () => ({
+    levels: [
+      {marker: '{1}.', nested: true},
+      {marker: '{1}.', nested: true},
+      {marker: '{a})', nested: false},
+    ],
+  }),
   // Only in Dutch for now.
-  appendix: () => [
-    {marker: 'Bijlage {A}', nested: true},
-    {marker: '{1}.', nested: true},
-    {marker: '{1}.', nested: true},
-    {marker: '{a}.', nested: true},
-  ],
-  legal: () => [
-    {marker: '{1}.', nested: true},
-    {marker: '({a})', nested: true},
-    {marker: '({i})', nested: true},
-  ],
+  appendix: () => ({
+    levels: [
+      {marker: 'Bijlage {A}', nested: true},
+      {marker: '{1}.', nested: true},
+      {marker: '{1}.', nested: true},
+      {marker: '{a}.', nested: true},
+    ],
+  }),
+  legal: () => ({
+    levels: [
+      {marker: '{1}.', nested: true},
+      {marker: '({a})', nested: true},
+      {marker: '({i})', nested: true},
+    ],
+  }),
   // 条 → 款 → 项 → 目
-  chinese: () => [
-    {marker: '第{一}条', nested: false},
-    {marker: '（{一}）', nested: false},
-    {marker: '{1}.', nested: false},
-    {marker: '（{1}）', nested: false},
-  ],
+  chinese: () => ({
+    levels: [
+      {marker: '第{一}条', nested: false},
+      {marker: '（{一}）', nested: false},
+      {marker: '{1}.', nested: false},
+      {marker: '（{1}）', nested: false},
+    ],
+  }),
   // 条 → 項 → 号 → 細目
-  japanese: () => [
-    {marker: '第{1}条', nested: false},
-    {marker: '{1}', nested: false},
-    {marker: '（{1}）', nested: false},
-    {marker: '{ア}', nested: false},
-  ],
+  japanese: () => ({
+    levels: [
+      {marker: '第{1}条', nested: false},
+      {marker: '{1}', nested: false},
+      {marker: '（{1}）', nested: false},
+      {marker: '{ア}', nested: false},
+    ],
+  }),
   // 조 → 항 → 호 → 목
-  korean: () => [
-    {marker: '제{1}조', nested: false},
-    {marker: '{①}', nested: false},
-    {marker: '{1}.', nested: false},
-    {marker: '{가}.', nested: false},
-  ],
-}
+  korean: () => ({
+    levels: [
+      {marker: '제{1}조', nested: false},
+      {marker: '{①}', nested: false},
+      {marker: '{1}.', nested: false},
+      {marker: '{가}.', nested: false},
+    ],
+  }),
+} satisfies Record<string, () => NumberingPreset>
 
 // #endregion
 
