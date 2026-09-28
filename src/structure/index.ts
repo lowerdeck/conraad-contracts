@@ -4,6 +4,7 @@ import { textSection } from './text'
 import { definitionListSection } from './definition-list'
 import { counter } from './counter'
 import { identifier } from './common'
+import { variableGroup } from './variable'
 
 // @index
 export * from './common'
@@ -46,8 +47,9 @@ export namespace ContractSection {
 // #region Structure
 
 export const contractStructure = z.object({
-  sections: z.array(contractSection).default([]),
-  counters: z.record(identifier(), counter).default({}),
+  sections:  z.array(contractSection).default([]),
+  counters:  z.record(identifier(), counter).default({}),
+  variables: z.array(variableGroup).default([]),
 })
 
 export type ContractStructure = z.output<typeof contractStructure>
