@@ -1,17 +1,21 @@
 import { z } from 'zod'
-import { listSection, ListStyle } from './list'
+import { listSection } from './list'
 import { textSection } from './text'
 import { definitionListSection } from './definition-list'
-import { nanoid } from 'nanoid'
+import { counter } from './counter'
+import { identifier } from './common'
 
 // @index
 export * from './common'
 export * from './conditional'
+export * from './counter'
 export * from './definition-list'
 export * from './list'
 export * from './text'
 export * from './variable'
 // /index
+
+// #region Section
 
 export const contractSection = z.discriminatedUnion('type', [
   textSection,
@@ -24,20 +28,28 @@ export type ContractSection = z.output<typeof contractSection>
 export namespace ContractSection {
 
   export function empty(type: ContractSection['type']): ContractSection {
-    const common = {
-      id:   nanoid(12),
-      name: '',
-    }
-
     switch (type) {
     case 'text':
-      return {...common, type, body: ''}
+      return textSection.parse({})
     case 'list':
-      return {...common, type, list_style: ListStyle.Numbers, items: []}
+      return listSection.parse({})
     case 'definition-list':
-      return {...common, type, items: []}
+      return definitionListSection.parse({})
     }
   }
 
-  
 }
+
+// #endregion
+
+// #region Structure
+
+export const contractStructure = z.object({
+  sections: z.array(contractSection).default([]),
+  counters: z.record(identifier(), counter).default({}),
+})
+
+export type ContractStructure = z.output<typeof contractStructure>
+
+
+// #endregion

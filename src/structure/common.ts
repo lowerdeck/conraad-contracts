@@ -3,14 +3,14 @@ import { z } from 'zod'
 import { conditional } from './conditional'
 
 export const contractSectionCommon = {
-  id:      id(),
-  name:    z.string().max(255),
-  counter: z.string().optional(),
-  $if:     conditional().optional(),
+  id:              id(),
+  name:            z.string().max(255),
+  section_counter: z.string().optional(),
+  $if:             conditional().optional(),
 }
 
-export function id() {
-  return z.string().min(1).max(32).default(nanoid)
+export function id(size: number = 12) {
+  return z.string().min(1).max(32).default(() => nanoid(size))
 }
 
 export function identifier() {
@@ -33,4 +33,7 @@ export function conditionalBody() {
     text: z.string(),
   })
 }
+
 export type ConditionalBody = z.output<ReturnType<typeof conditionalBody>>
+export type Identifier = string
+export type Expression = string
