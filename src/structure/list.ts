@@ -3,7 +3,6 @@ import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import { conditionalBody, contractSectionCommon, id } from './common'
 import { Conditional, conditional } from './conditional'
-import { counter } from './counter'
 
 export function listItem(level: number): z.ZodType<ListItem> {
   return z.object({
@@ -21,7 +20,6 @@ export const listSection = z.object({
   type:      z.literal('list'),
   preamble:  conditionalBody().optional(),
   postamble: conditionalBody().optional(),
-  counter:   counter.nullable().default(counter.parse({})),
   items:     z.array(listItem(1)).default([]),
 })
 

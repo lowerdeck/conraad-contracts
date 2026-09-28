@@ -1,7 +1,162 @@
+import { z } from 'zod'
+import { identifier } from './common'
+
+/**
+ * A numbering system, like the one for articles or for appendices. Sections refer to it by ID, and are numbered at the
+ * first level. The items of list sections are numbered at the levels below it.
+ */
+export const numbering = z.object({
+  id:   identifier(),
+  name: z.string().max(255),
+
+  /**
+   * The levels, from the top down. Levels beyond the last one use the last one.
+   */
+  levels: z.array(z.object({
+    marker: z.string().max(50),
+
+    /**
+     * Whether to combine the marker with that of the level above, as in `1.1.` or `1(a)`. Only has effect if the
+     * markers allow it, see `canNestMarkers`.
+     */
+    nested: z.boolean().default(true),
+  })).min(1),
+})
+
+export type Numbering = z.output<typeof numbering>
+export type NumberingLevel = Numbering['levels'][number]
+
+export namespace Numbering {
+
+  export function level(numbering: Numbering, depth: number): NumberingLevel {
+    return numbering.levels[Math.min(depth, numbering.levels.length - 1)]
+  }
+
+  /**
+   * Formats the number at the given path of (1-based) values, one per level. E.g. `[1, 2, 1]` gives `1.2.a.` for
+   * the default article numbering.
+   */
+  export function format(numbering: Numbering, path: number[]): string {
+    let result = ''
+    let parentMarker: string | null = null
+
+    for (const [depth, value] of path.entries()) {
+      const {marker, nested} = level(numbering, depth)
+      const nest = parentMarker != null && nested && canNestMarkers(parentMarker, marker)
+
+      result = nest ? formatNestedMarker(result, marker, value) : formatMarker(marker, value)
+      parentMarker = marker
+    }
+
+    return result
+  }
+
+  export function defaults(): Numbering[] {
+    return [
+      {
+        id:     'article',
+        name:   'Artikel',
+        levels: [
+          {marker: '{1}.', nested: true},
+          {marker: '{1}.', nested: true},
+          {marker: '{a}.', nested: true},
+        ],
+      },
+      {
+        id:     'appendix',
+        name:   'Bijlage',
+        levels: [
+          {marker: '{A}.', nested: true},
+          {marker: '{1}.', nested: true},
+          {marker: '{1}.', nested: true},
+          {marker: '{a}.', nested: true},
+        ],
+      },
+    ]
+  }
+
+}
+
+// #region Markers
+
+/**
+ * Formats a marker for the given (1-based) value. The value is inserted at the marker's placeholder, which is how its
+ * style writes 1: `{1}.`, `({a})`, `제{1}조`, `{가}.`, etc.
+ */
+export function formatMarker(marker: string, value: number) {
+  const placeholder = findMarkerPlaceholder(marker)
+  if (placeholder == null) { return marker }
+
+  const {start, length, style} = placeholder
+  return marker.slice(0, start) + formatCounterStyle(value, style) + marker.slice(start + length)
+}
+
+/**
+ * Formats a marker nested under an already formatted parent marker: `1.` + `a.` gives `1.a.`, and `1.` + `(a)` gives
+ * `1(a)`, like clause references in contracts. Any text before the placeholder is left out.
+ */
+function formatNestedMarker(parent: string, marker: string, value: number) {
+  const placeholder = findMarkerPlaceholder(marker)
+  const nesting = markerNesting(marker)
+  if (placeholder == null || nesting == null) { return formatMarker(marker, value) }
+
+  const formatted = formatCounterStyle(value, placeholder.style)
+  if (nesting === 'period') {
+    return `${parent}${formatted}.`
+  } else {
+    return `${parent.replace(/\.$/, '')}(${formatted})`
+  }
+}
+
+/**
+ * Whether marker `child` can be nested under marker `parent`. Only markers of the form `{x}.` and `({x})` with a
+ * Western style can, and a `{x}.` marker cannot follow a `({x})` one.
+ */
+export function canNestMarkers(parent: string, child: string) {
+  const parentNesting = markerNesting(parent)
+  const childNesting = markerNesting(child)
+  if (parentNesting == null || childNesting == null) { return false }
+
+  return !(parentNesting === 'parens' && childNesting === 'period')
+}
+
+function findMarkerPlaceholder(marker: string): MarkerPlaceholder | null {
+  for (const match of marker.matchAll(/\{([^{}]+)\}/g)) {
+    const style = counterStyleForPlaceholder(match[1])
+    if (style != null) {
+      return {start: match.index, length: match[0].length, style}
+    }
+  }
+  return null
+}
+
+function markerNesting(marker: string): MarkerNesting | null {
+  const placeholder = findMarkerPlaceholder(marker)
+  if (placeholder == null || !isNestableCounterStyle(placeholder.style)) { return null }
+
+  const before = marker.slice(0, placeholder.start)
+  const after = marker.slice(placeholder.start + placeholder.length)
+  if (after === '.') { return 'period' }
+  if (after === ')' && before.endsWith('(')) { return 'parens' }
+  return null
+}
+
+type MarkerNesting = 'period' | 'parens'
+
+interface MarkerPlaceholder {
+  start:  number
+  length: number
+  style:  CounterStyle
+}
+
+// #endregion
+
+// #region Counter styles
+
 /**
  * Formats a counter value in the given style. Values the style cannot express fall back to decimal.
  */
-export function formatCounterStyle(value: number, style: CounterStyle): string {
+function formatCounterStyle(value: number, style: CounterStyle): string {
   const definition: CounterStyleDefinition = COUNTER_STYLES[style]
   if (value < 1 || value > definition.max) {
     return String(value)
@@ -16,26 +171,26 @@ export function formatCounterStyle(value: number, style: CounterStyle): string {
   }
 }
 
-export type CounterStyle = keyof typeof COUNTER_STYLES
+type CounterStyle = keyof typeof COUNTER_STYLES
 
-export const counterStyles = () => Object.keys(COUNTER_STYLES) as CounterStyle[]
+const counterStyles = () => Object.keys(COUNTER_STYLES) as CounterStyle[]
 
 /**
  * The placeholder for a style in a marker, which is how the style writes 1: `{1}`, `{a}`, `{가}`, etc.
  */
-export function counterStylePlaceholder(style: CounterStyle) {
+function counterStylePlaceholder(style: CounterStyle) {
   const definition: CounterStyleDefinition = COUNTER_STYLES[style]
   return definition.placeholder
 }
 
-export function counterStyleForPlaceholder(placeholder: string): CounterStyle | undefined {
+function counterStyleForPlaceholder(placeholder: string): CounterStyle | undefined {
   return STYLES_BY_PLACEHOLDER.get(placeholder)
 }
 
 /**
  * Whether the style can be combined with a parent counter, as in `1.a.` or `1(a)`.
  */
-export function isNestableCounterStyle(style: CounterStyle) {
+function isNestableCounterStyle(style: CounterStyle) {
   const definition: CounterStyleDefinition = COUNTER_STYLES[style]
   return definition.nestable === true
 }
@@ -147,3 +302,5 @@ const COUNTER_STYLES = {
 const STYLES_BY_PLACEHOLDER = new Map(
   counterStyles().map(style => [counterStylePlaceholder(style), style]),
 )
+
+// #endregion

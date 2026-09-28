@@ -3,10 +3,15 @@ import { z } from 'zod'
 import { conditional } from './conditional'
 
 export const contractSectionCommon = {
-  id:              id(),
-  name:            z.string().max(255),
-  section_counter: z.string().optional(),
-  $if:             conditional().optional(),
+  id:   id(),
+  name: z.string().max(255),
+
+  /**
+   * The ID of the numbering the section is numbered in, if any.
+   */
+  numbering: identifier().optional(),
+
+  $if: conditional().optional(),
 }
 
 export function id(size: number = 12) {
