@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { listSection } from './list'
 import { textSection } from './text'
 import { definitionListSection } from './definition-list'
-import { numbering } from './numbering'
+import { numberings } from './numbering'
 import { variableGroup } from './variable'
 
 // @index
@@ -46,7 +46,10 @@ export namespace ContractSection {
 
 export const contractStructure = z.object({
   sections:   z.array(contractSection).default([]),
-  numberings: z.array(numbering).default([]),
+  /**
+   * Absent for new templates, which get the organisation's numberings.
+   */
+  numberings: numberings.optional(),
   variables:  z.array(variableGroup).default([]),
 })
 
