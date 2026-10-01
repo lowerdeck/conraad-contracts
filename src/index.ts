@@ -1,5 +1,6 @@
 export * from './evaluator'
 export * from './expressions'
+export * from './inputs'
 export * from './jsep'
 export * from './missing-value'
 export * from './notice'
