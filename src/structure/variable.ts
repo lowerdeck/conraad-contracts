@@ -56,11 +56,6 @@ export const dateVariable = z.object({
   default: z.string().optional(),
 }).extend(variableCommon.shape)
 
-export const datetimeVariable = z.object({
-  type:    z.literal('datetime'),
-  default: z.string().optional(),
-}).extend(variableCommon.shape)
-
 export const choiceVariable = z.object({
   type:    z.literal('choice'),
   default: z.string().optional(),
@@ -81,17 +76,6 @@ export const calculatedVariable = z.object({
   expression: expression(),
 }).extend(variableCommon.shape)
 
-export const variable = z.discriminatedUnion('type', [
-  textVariable,
-  numberVariable,
-  currencyVariable,
-  booleanVariable,
-  dateVariable,
-  datetimeVariable,
-  choiceVariable,
-  calculatedVariable,
-])
-
 // Anything that is filled in on the form, as opposed to calculated.
 export const inputVariable = z.discriminatedUnion('type', [
   textVariable,
@@ -102,13 +86,12 @@ export const inputVariable = z.discriminatedUnion('type', [
   choiceVariable,
 ])
 
-export type Variable = z.output<typeof variable>
+export type Variable = InputVariable | CalculatedVariable
 export type TextVariable = z.output<typeof textVariable>
 export type NumberVariable = z.output<typeof numberVariable>
 export type CurrencyVariable = z.output<typeof currencyVariable>
 export type DateVariable = z.output<typeof dateVariable>
 export type BooleanVariable = z.output<typeof booleanVariable>
-export type DatetimeVariable = z.output<typeof datetimeVariable>
 export type ChoiceVariable = z.output<typeof choiceVariable>
 export type ChoiceOption = z.output<typeof choiceOption>
 export type CalculatedVariable = z.output<typeof calculatedVariable>
