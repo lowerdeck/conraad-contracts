@@ -2,14 +2,15 @@ import { z } from 'zod'
 import { listSection } from './list'
 import { textSection } from './text'
 import { definitionListSection } from './definition-list'
+import { form } from './form'
 import { headerFooter } from './header-footer'
 import { numberings } from './numbering'
-import { variableGroup } from './variable'
 
 // @index
 export * from './common'
 export * from './conditional'
 export * from './definition-list'
+export * from './form'
 export * from './header-footer'
 export * from './list'
 export * from './numbering'
@@ -49,7 +50,7 @@ export namespace ContractSection {
 export const contractStructure = z.object({
   sections:   z.array(contractSection).default([]),
   numberings: numberings.default({}),
-  variables:  z.array(variableGroup).default([]),
+  form:       form.default(() => form.parse({})),
   header:     headerFooter.optional(),
   footer:     headerFooter.optional(),
 })

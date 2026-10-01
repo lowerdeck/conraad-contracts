@@ -1,7 +1,8 @@
 import { z } from 'zod'
-import { expression } from './common'
+import { expression, id } from './common'
 
 const variableCommon = z.object({
+  id:           id(),
   name:         z.string().max(64).min(1),
   label:        z.string().max(64).min(1),
   instructions: z.string().max(1024).min(1).optional(),
@@ -15,6 +16,7 @@ export const choiceOption = z.object({
 export const textVariable = z.object({
   type:    z.literal('text'),
   default: z.string().optional(),
+  input:   z.enum(['input', 'textarea']).optional(),
 
   min_length: z.int().nonnegative().optional(),
   max_length: z.int().nonnegative().optional(),
@@ -23,15 +25,35 @@ export const textVariable = z.object({
 export const numberVariable = z.object({
   type:    z.literal('number'),
   default: z.number().optional(),
+  input:   z.enum(['input', 'slider']).optional(),
 
   integer: z.boolean().default(false),
   min:     z.number().optional(),
   max:     z.number().optional(),
 }).extend(variableCommon.shape)
 
+export const currencyVariable = z.object({
+  type:    z.literal('currency'),
+  default: z.number().optional(),
+  input:   z.enum(['input', 'slider']).optional(),
+
+  /** An ISO 4217 code. */
+  currency: z.string().length(3).default('EUR'),
+  decimals: z.boolean().default(true),
+  min:      z.number().optional(),
+  max:      z.number().optional(),
+}).extend(variableCommon.shape)
+
 export const booleanVariable = z.object({
   type:    z.literal('boolean'),
   default: z.boolean().optional(),
+  input:   z.enum(['switch', 'select']).optional(),
+}).extend(variableCommon.shape)
+
+// Stored as an ISO date, without a time.
+export const dateVariable = z.object({
+  type:    z.literal('date'),
+  default: z.string().optional(),
 }).extend(variableCommon.shape)
 
 export const datetimeVariable = z.object({
@@ -42,6 +64,7 @@ export const datetimeVariable = z.object({
 export const choiceVariable = z.object({
   type:    z.literal('choice'),
   default: z.string().optional(),
+  input:   z.enum(['select', 'radio']).optional(),
   options: z.array(choiceOption).default([]),
 })
   .extend(variableCommon.shape)
@@ -61,23 +84,32 @@ export const calculatedVariable = z.object({
 export const variable = z.discriminatedUnion('type', [
   textVariable,
   numberVariable,
+  currencyVariable,
   booleanVariable,
+  dateVariable,
   datetimeVariable,
   choiceVariable,
   calculatedVariable,
 ])
 
-export const variableGroup = z.object({
-  group:     z.string().max(64).min(1),
-  variables: z.array(variable).default([]),
-})
+// Anything that is filled in on the form, as opposed to calculated.
+export const inputVariable = z.discriminatedUnion('type', [
+  textVariable,
+  numberVariable,
+  currencyVariable,
+  booleanVariable,
+  dateVariable,
+  choiceVariable,
+])
 
 export type Variable = z.output<typeof variable>
 export type TextVariable = z.output<typeof textVariable>
 export type NumberVariable = z.output<typeof numberVariable>
+export type CurrencyVariable = z.output<typeof currencyVariable>
+export type DateVariable = z.output<typeof dateVariable>
 export type BooleanVariable = z.output<typeof booleanVariable>
 export type DatetimeVariable = z.output<typeof datetimeVariable>
 export type ChoiceVariable = z.output<typeof choiceVariable>
 export type ChoiceOption = z.output<typeof choiceOption>
 export type CalculatedVariable = z.output<typeof calculatedVariable>
-export type VariableGroup = z.output<typeof variableGroup>
+export type InputVariable = z.output<typeof inputVariable>
