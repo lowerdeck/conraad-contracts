@@ -1,11 +1,10 @@
 import { z } from 'zod'
-import { expression, id } from './common'
+import { expression } from './common'
 
 const variableCommon = z.object({
-  id:           id(),
-  name:         z.string().max(64).min(1),
-  label:        z.string().max(64).min(1),
-  instructions: z.string().max(1024).min(1).optional(),
+  name:     z.string().max(64).min(1),
+  title:    z.string().max(64).min(1),
+  subtitle: z.string().max(1024).min(1).optional(),
 })
 
 export const choiceOption = z.object({
