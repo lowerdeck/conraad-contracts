@@ -14,7 +14,7 @@ import { conditional } from './conditional'
  */
 export const appendix = z.object({
   id:   id(),
-  name: z.string().max(255),
+  name: z.string().min(1).max(255).nullable().default(null),
   $if:  conditional().optional(),
   type: appendixType().default('contract'),
 
@@ -35,7 +35,7 @@ export type AppendixType = z.output<ReturnType<typeof appendixType>>
 export namespace Appendix {
 
   export function empty(): Appendix {
-    return appendix.parse({name: ''})
+    return appendix.parse({})
   }
 
   export function clone(item: Appendix, overrides: Partial<Appendix> = {}): Appendix {

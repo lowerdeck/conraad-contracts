@@ -36,7 +36,7 @@ export type ContractSection = z.output<typeof contractSection>
 
 export namespace ContractSection {
 
-  export function empty(type: ContractSection['type'], name: string): ContractSection {
+  export function empty(type: ContractSection['type'], name: string | null): ContractSection {
     switch (type) {
     case 'text':
       return textSection.parse({name})

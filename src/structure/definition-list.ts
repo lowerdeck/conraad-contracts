@@ -7,7 +7,7 @@ import { conditional } from './conditional'
 export const definitionListItem = z.object({
   id:   id(),
   $if:  conditional().optional(),
-  term: z.string().max(255),
+  term: z.string().min(1).max(255).nullable().default(null),
   body: richText(),
 })
 
@@ -27,7 +27,7 @@ export namespace DefinitionListItem {
   export function empty(): DefinitionListItem {
     return {
       id:   nanoid(12),
-      term: '',
+      term: null,
       body: null,
     }
   }

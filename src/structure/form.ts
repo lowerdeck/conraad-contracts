@@ -14,7 +14,7 @@ export const formField = z.object({
 
 export const formFieldset = z.object({
   id:       id(),
-  title:    z.string().max(255).default(''),
+  title:    z.string().min(1).max(255).nullable().default(null),
   preamble: z.string().max(2048).min(1).optional(),
   icon:     z.string().max(64).nullable().optional(),
 
@@ -28,7 +28,7 @@ export const formFieldset = z.object({
 
 export const formPage = z.object({
   id:        id(),
-  title:     z.string().max(255).default(''),
+  title:     z.string().min(1).max(255).nullable().default(null),
   preamble:  z.string().max(2048).min(1).optional(),
   fieldsets: z.array(formFieldset).default([]),
 })

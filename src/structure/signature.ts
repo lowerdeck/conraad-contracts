@@ -9,7 +9,7 @@ export const signatureParty = z.object({
   $if: conditional().optional(),
 
   /** Who signs, like "Producent" or "Opdrachtnemer". */
-  label: z.string().max(255),
+  label: z.string().min(1).max(255).nullable().default(null),
 
   /** Shown below the signature, typically the name and capacity of the signatory. */
   details: richText(),
@@ -32,7 +32,7 @@ export type SignatureSection = z.output<typeof signatureSection>
 export namespace SignatureParty {
 
   export function empty(): SignatureParty {
-    return signatureParty.parse({label: '', details: null})
+    return signatureParty.parse({details: null})
   }
 
   export function clone(party: SignatureParty, overrides: Partial<SignatureParty> = {}): SignatureParty {

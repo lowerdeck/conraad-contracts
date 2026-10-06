@@ -4,13 +4,14 @@ import { z } from 'zod'
 import { id } from './common'
 
 export const numberingLevel = z.object({
-  marker: z.string().max(50),
+  /** The marker, or `null` for a level that isn't numbered. */
+  marker: z.string().min(1).max(50).nullable(),
   nested: z.boolean().default(true),
 })
 
 export const numbering = z.object({
   id:     id(),
-  name:   z.string().max(255),
+  name:   z.string().min(1).max(255),
   levels: z.array(numberingLevel).min(1),
 })
 
@@ -22,16 +23,27 @@ export type Numberings = z.output<typeof numberings>
 
 export namespace Numbering {
 
-  export function format(numbering: NumberingPreset, path: number[]): string {
-    let result = ''
-    let parentMarker: string | null = null
+  /**
+   * Formats the number at the given path, or returns `null` if its level isn't numbered. A level below one that isn't
+   * numbered nests under the nearest one that is.
+   */
+  export function format(numbering: NumberingPreset, path: number[]): string | null {
+    let result: string | null = null
+    let parent: {formatted: string, marker: string} | null = null
 
     for (const [depth, value] of path.entries()) {
       const {marker, nested} = numbering.levels[clamp(depth, 0, numbering.levels.length - 1)]
-      const nest = parentMarker != null && nested && canNestMarkers(parentMarker, marker)
+      if (marker == null) {
+        result = null
+        continue
+      }
 
-      result = nest ? formatNestedMarker(result, marker, value) : formatMarker(marker, value)
-      parentMarker = marker
+      const formatted: string = parent != null && nested && canNestMarkers(parent.marker, marker)
+        ? formatNestedMarker(parent.formatted, marker, value)
+        : formatMarker(marker, value)
+
+      result = formatted
+      parent = {formatted, marker}
     }
 
     return result
@@ -43,7 +55,7 @@ export namespace Numbering {
 
   export function example(preset: NumberingPreset) {
     return preset.levels.map((_, depth) => {
-      return Numbering.format(preset, Array(depth + 1).fill(1))
+      return Numbering.format(preset, Array(depth + 1).fill(1)) ?? '–'
     }).join(' · ')
   }
 
