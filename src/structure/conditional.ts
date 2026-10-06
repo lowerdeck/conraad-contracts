@@ -112,6 +112,13 @@ export function dateUnit() {
   ])
 }
 
+/**
+ * Conditions as stored: none at all rather than an empty list.
+ */
+export function normalizeConditional(conditional: Conditional | undefined): Conditional | undefined {
+  return conditional == null || conditional.length === 0 ? undefined : conditional
+}
+
 export type Conditional = z.output<ReturnType<typeof conditional>>
 export type Conditions = z.output<ReturnType<typeof conditions>>
 export type Condition = z.output<ReturnType<typeof condition>>

@@ -1,12 +1,13 @@
 import { z } from 'zod'
-import { appendicesSection, appendix } from './appendix'
-import { listSection } from './list'
+import { appendix } from './appendix'
+import { RichText } from './common'
+import { DefinitionListItem, DefinitionListSection, definitionListSection } from './definition-list'
+import { ListItem, ListSection, listSection } from './list'
 import { textSection } from './text'
-import { definitionListSection } from './definition-list'
 import { form } from './form'
 import { headerFooter } from './header-footer'
 import { numberings } from './numbering'
-import { signatureSection } from './signature'
+import { SignatureParty, SignatureSection, signatureSection } from './signature'
 
 // @index
 export * from './appendix'
@@ -28,7 +29,6 @@ export const contractSection = z.discriminatedUnion('type', [
   textSection,
   listSection,
   definitionListSection,
-  appendicesSection,
   signatureSection,
 ])
 
@@ -44,14 +44,59 @@ export namespace ContractSection {
       return listSection.parse({name})
     case 'definition-list':
       return definitionListSection.parse({name})
-    case 'appendices':
-      return appendicesSection.parse({name})
     case 'signature':
       return signatureSection.parse({name})
     }
   }
 
+  /**
+   * All texts of a section.
+   */
+  export function texts(section: ContractSection): RichText[] {
+    switch (section.type) {
+    case 'text':
+      return [section.body]
+    case 'list':
+      return [section.preamble?.text, section.postamble?.text, ...ListItem.flatten(section.items).map(it => it.item.text)]
+    case 'definition-list':
+      return [section.preamble?.text, section.postamble?.text, ...section.items.map(it => it.body)]
+    case 'signature':
+      return [section.preamble?.text, section.postamble?.text, ...section.parties.map(it => it.details)]
+    }
+  }
+
+  /**
+   * Finds a list item, definition or signing party by its ID, along with the section it's in.
+   */
+  export function findItem(sections: ContractSection[], id: string): SectionItemLocation | null {
+    for (const section of sections) {
+      switch (section.type) {
+      case 'list': {
+        const found = ListItem.flatten(section.items).find(it => it.item.id === id)
+        if (found != null) { return {kind: 'list-item', section, item: found.item} }
+        break
+      }
+      case 'definition-list': {
+        const item = section.items.find(it => it.id === id)
+        if (item != null) { return {kind: 'definition', section, item} }
+        break
+      }
+      case 'signature': {
+        const item = section.parties.find(it => it.id === id)
+        if (item != null) { return {kind: 'party', section, item} }
+        break
+      }
+      }
+    }
+    return null
+  }
+
 }
+
+export type SectionItemLocation =
+  | {kind: 'list-item', section: ListSection, item: ListItem}
+  | {kind: 'definition', section: DefinitionListSection, item: DefinitionListItem}
+  | {kind: 'party', section: SignatureSection, item: SignatureParty}
 
 // #endregion
 

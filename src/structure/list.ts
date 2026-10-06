@@ -48,4 +48,52 @@ export namespace ListItem {
     }
   }
 
+  /**
+   * The items in document order, with their level (1 for top-level items).
+   */
+  export function flatten(items: ListItem[], level: number = 1): FlatListItem[] {
+    return items.flatMap(item => [
+      {item, level},
+      ...flatten(item.items ?? [], level + 1),
+    ])
+  }
+
+  /**
+   * Nests flat items by their level. An item can only be one level deeper than the one before it.
+   */
+  export function nest(flat: FlatListItem[]): ListItem[] {
+    const root: ListItem[] = []
+    const stack: ListItem[][] = [root]
+
+    for (const {item, level} of flat) {
+      const depth = Math.max(1, Math.min(level, stack.length, maxListLevel))
+      stack.length = depth
+
+      const node: ListItem = {...item, items: []}
+      stack[depth - 1].push(node)
+      stack.push(node.items)
+    }
+
+    return root
+  }
+
+  /**
+   * The index just past the flat item at the given index and its sub-items.
+   */
+  export function subtreeEnd(flat: FlatListItem[], index: number): number {
+    const {level} = flat[index]
+    let end = index + 1
+    while (end < flat.length && flat[end].level > level) {
+      end += 1
+    }
+    return end
+  }
+
 }
+
+export interface FlatListItem {
+  item:  ListItem
+  level: number
+}
+
+export const maxListLevel = 6

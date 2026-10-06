@@ -1,7 +1,7 @@
 import { cloneDeep } from 'lodash'
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
-import { conditionalBody, contractSectionCommon, id } from './common'
+import { id } from './common'
 import { conditional } from './conditional'
 
 /**
@@ -25,23 +25,12 @@ export const appendix = z.object({
   document: z.string().max(36).nullable().default(null),
 })
 
-/**
- * A generated list of the contract's appendices, with their numbers.
- */
-export const appendicesSection = z.object({
-  ...contractSectionCommon,
-  type:      z.literal('appendices').default('appendices'),
-  preamble:  conditionalBody().optional(),
-  postamble: conditionalBody().optional(),
-})
-
 export function appendixType() {
   return z.enum(['contract', 'document', 'section'])
 }
 
 export type Appendix = z.output<typeof appendix>
 export type AppendixType = z.output<ReturnType<typeof appendixType>>
-export type AppendicesSection = z.output<typeof appendicesSection>
 
 export namespace Appendix {
 

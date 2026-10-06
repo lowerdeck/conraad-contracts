@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { id } from './common'
-import { booleanVariable, calculatedVariable, inputVariable, Variable } from './variable'
+import { booleanVariable, CalculatedVariable, calculatedVariable, inputVariable, Variable } from './variable'
 
 export const formField = z.object({
   id:       id(),
@@ -66,4 +66,32 @@ export namespace Form {
     return result
   }
 
+  export function fieldset(form: Form, id: string): FormFieldset | null {
+    return form.pages.flatMap(it => it.fieldsets).find(it => it.id === id) ?? null
+  }
+
+  /**
+   * Finds a variable by its name: a field, the toggle of a fieldset, or a calculated variable.
+   */
+  export function findVariable(form: Form, name: string): FormVariableLocation | null {
+    for (const fieldset of form.pages.flatMap(it => it.fieldsets)) {
+      if (fieldset.toggle?.name === name) {
+        return {kind: 'toggle', fieldset}
+      }
+
+      const field = fieldset.fields.find(it => it.variable.name === name)
+      if (field != null) {
+        return {kind: 'field', fieldset, field}
+      }
+    }
+
+    const variable = form.calculated.find(it => it.name === name)
+    return variable == null ? null : {kind: 'calculated', variable}
+  }
+
 }
+
+export type FormVariableLocation =
+  | {kind: 'field', fieldset: FormFieldset, field: FormField}
+  | {kind: 'toggle', fieldset: FormFieldset}
+  | {kind: 'calculated', variable: CalculatedVariable}
