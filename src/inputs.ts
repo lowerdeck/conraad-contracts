@@ -1,5 +1,6 @@
 /**
- * The values that are known for every contract from its assignment, its production and role, and the contractor.
+ * The values that are known for every contract from its assignment, its production and role, the contractor and the
+ * producing organisation.
  * They're available in expressions by their full path, like `contractor.user.full_name`, so templates don't need
  * form fields for them.
  */
@@ -52,9 +53,21 @@ export const contractInputs: ContractInput[] = [
       {path: 'profile.date_of_birth', type: 'date'},
     ],
   },
+  {
+    root:       'organisation',
+    properties: [
+      {path: 'name', type: 'text'},
+      {path: 'address_line_1', type: 'text'},
+      {path: 'address_line_2', type: 'text'},
+      {path: 'postal_code', type: 'text'},
+      {path: 'city', type: 'text'},
+      {path: 'kvk_nummer', type: 'text'},
+      {path: 'representative', type: 'text'},
+    ],
+  },
 ]
 
-export type ContractInputRoot = 'assignment' | 'production' | 'role' | 'contractor'
+export type ContractInputRoot = 'assignment' | 'production' | 'role' | 'contractor' | 'organisation'
 
 export interface ContractInput {
   root:       ContractInputRoot

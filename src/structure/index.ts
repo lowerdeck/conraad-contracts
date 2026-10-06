@@ -36,18 +36,18 @@ export type ContractSection = z.output<typeof contractSection>
 
 export namespace ContractSection {
 
-  export function empty(type: ContractSection['type']): ContractSection {
+  export function empty(type: ContractSection['type'], name: string): ContractSection {
     switch (type) {
     case 'text':
-      return textSection.parse({})
+      return textSection.parse({name})
     case 'list':
-      return listSection.parse({})
+      return listSection.parse({name})
     case 'definition-list':
-      return definitionListSection.parse({})
+      return definitionListSection.parse({name})
     case 'appendices':
-      return appendicesSection.parse({})
+      return appendicesSection.parse({name})
     case 'signature':
-      return signatureSection.parse({})
+      return signatureSection.parse({name})
     }
   }
 

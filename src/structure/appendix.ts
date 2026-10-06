@@ -30,7 +30,7 @@ export const appendix = z.object({
  */
 export const appendicesSection = z.object({
   ...contractSectionCommon,
-  type:      z.literal('appendices'),
+  type:      z.literal('appendices').default('appendices'),
   preamble:  conditionalBody().optional(),
   postamble: conditionalBody().optional(),
 })

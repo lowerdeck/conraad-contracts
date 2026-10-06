@@ -17,7 +17,7 @@ export function listItem(level: number): z.ZodType<ListItem> {
 
 export const listSection = z.object({
   ...contractSectionCommon,
-  type:      z.literal('list'),
+  type:      z.literal('list').default('list'),
   preamble:  conditionalBody().optional(),
   postamble: conditionalBody().optional(),
   items:     z.array(listItem(1)).default([]),

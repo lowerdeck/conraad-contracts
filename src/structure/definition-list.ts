@@ -13,7 +13,7 @@ export const definitionListItem = z.object({
 
 export const definitionListSection = z.object({
   ...contractSectionCommon,
-  type:      z.literal('definition-list'),
+  type:      z.literal('definition-list').default('definition-list'),
   preamble:  conditionalBody().optional(),
   postamble: conditionalBody().optional(),
   items:     z.array(definitionListItem),

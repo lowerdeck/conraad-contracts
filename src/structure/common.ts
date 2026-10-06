@@ -6,12 +6,8 @@ export const contractSectionCommon = {
   id:   id(),
   name: z.string().max(255),
 
-  /**
-   * The ID of the numbering the section is numbered in, if any.
-   */
   numbering: z.string().max(32).nullable().optional(),
-
-  $if: conditional().optional(),
+  $if:       conditional().optional(),
 }
 
 export function id(size: number = 12) {

@@ -20,7 +20,7 @@ export const signatureParty = z.object({
  */
 export const signatureSection = z.object({
   ...contractSectionCommon,
-  type:      z.literal('signature'),
+  type:      z.literal('signature').default('signature'),
   preamble:  conditionalBody().optional(),
   postamble: conditionalBody().optional(),
   parties:   z.array(signatureParty).default([]),
