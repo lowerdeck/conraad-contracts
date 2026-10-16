@@ -24,13 +24,16 @@
     "test": "NODE_ENV=test jest --passWithNoTests"
   },
   "devDependencies": {
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@types/jest": "^30.0.0",
     "@types/lodash": "^4.17.20",
-    "eslint-plugin-unused-imports": "^4.3.0",
+    "@typescript-eslint/eslint-plugin": "^8.65.0",
+    "@typescript-eslint/parser": "^8.65.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "globals": "^16.4.0",
     "rimraf": "^6.0.1",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.65.0",
     "yaml": "^2.8.2"
   },
   "dependencies": {
