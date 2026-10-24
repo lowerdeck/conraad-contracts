@@ -1,3 +1,4 @@
+export * from './additions'
 export * from './evaluator'
 export * from './expressions'
 export * from './inputs'

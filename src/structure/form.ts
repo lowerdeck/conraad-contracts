@@ -10,6 +10,11 @@ export const formField = z.object({
    * Shown as a little info icon with a popup for even more instructions or special cases.
    */
   instruction: z.string().max(1024).min(1).optional(),
+
+  /**
+   * Fields are required, unless they're optional.
+   */
+  optional: z.boolean().optional(),
 })
 
 export const formFieldset = z.object({
@@ -24,22 +29,19 @@ export const formFieldset = z.object({
   toggle: booleanVariable.nullable().optional(),
 
   fields: z.array(formField).default([]),
-})
 
-export const formPage = z.object({
-  id:        id(),
-  title:     z.string().min(1).max(255).nullable().default(null),
-  preamble:  z.string().max(2048).min(1).optional(),
-  fieldsets: z.array(formFieldset).default([]),
+  /**
+   * Starts a new page of the form with this fieldset. The first fieldset always starts the first page.
+   */
+  new_page: z.boolean().optional(),
 })
 
 export const form = z.object({
-  pages:      z.array(formPage).default(() => [formPage.parse({})]),
+  fieldsets:  z.array(formFieldset).default([]),
   calculated: z.array(calculatedVariable).default([]),
 })
 
 export type Form = z.output<typeof form>
-export type FormPage = z.output<typeof formPage>
 export type FormFieldset = z.output<typeof formFieldset>
 export type FormField = z.output<typeof formField>
 
@@ -54,27 +56,39 @@ export namespace Form {
    */
   export function variables(form: Form): Variable[] {
     const result: Variable[] = []
-    for (const page of form.pages) {
-      for (const fieldset of page.fieldsets) {
-        if (fieldset.toggle != null) {
-          result.push(fieldset.toggle)
-        }
-        result.push(...fieldset.fields.map(it => it.variable))
+    for (const fieldset of form.fieldsets) {
+      if (fieldset.toggle != null) {
+        result.push(fieldset.toggle)
       }
+      result.push(...fieldset.fields.map(it => it.variable))
     }
     result.push(...form.calculated)
     return result
   }
 
   export function fieldset(form: Form, id: string): FormFieldset | null {
-    return form.pages.flatMap(it => it.fieldsets).find(it => it.id === id) ?? null
+    return form.fieldsets.find(it => it.id === id) ?? null
+  }
+
+  /**
+   * The fieldsets, split into pages where they start a new page.
+   */
+  export function pages(form: Form): FormFieldset[][] {
+    const pages: FormFieldset[][] = []
+    for (const fieldset of form.fieldsets) {
+      if (pages.length === 0 || fieldset.new_page) {
+        pages.push([])
+      }
+      pages[pages.length - 1].push(fieldset)
+    }
+    return pages
   }
 
   /**
    * Finds a variable by its name: a field, the toggle of a fieldset, or a calculated variable.
    */
   export function findVariable(form: Form, name: string): FormVariableLocation | null {
-    for (const fieldset of form.pages.flatMap(it => it.fieldsets)) {
+    for (const fieldset of form.fieldsets) {
       if (fieldset.toggle?.name === name) {
         return {kind: 'toggle', fieldset}
       }
