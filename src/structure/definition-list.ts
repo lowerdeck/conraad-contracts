@@ -9,6 +9,8 @@ export const definitionListItem = z.object({
   $if:  conditional().optional(),
   term: z.string().min(1).max(255).nullable().default(null),
   body: richText(),
+
+  required: z.boolean().optional(),
 })
 
 export const definitionListSection = z.object({

@@ -9,6 +9,8 @@ export function listItem(level: number): z.ZodType<ListItem> {
     id:   id(),
     $if:  conditional().optional(),
     text: richText(),
+
+    required: z.boolean().optional(),
     ...(level < 6 && {
       items: z.array(listItem(level + 1)).optional(),
     }),
@@ -29,6 +31,7 @@ export interface ListItem {
   id: string
   $if?: Conditional
   text: RichText
+  required?: boolean
   items: ListItem[]
 }
 

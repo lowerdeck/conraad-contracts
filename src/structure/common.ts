@@ -8,6 +8,9 @@ export const contractSectionCommon = {
 
   numbering: z.string().max(32).nullable().optional(),
   $if:       conditional().optional(),
+
+  /** Whether it has to stay in contracts drawn up from the template, rather than being removable. */
+  required: z.boolean().optional(),
 }
 
 export function id(size: number = 12) {

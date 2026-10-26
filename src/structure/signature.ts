@@ -13,6 +13,8 @@ export const signatureParty = z.object({
 
   /** Shown below the signature, typically the name and capacity of the signatory. */
   details: richText(),
+
+  required: z.boolean().optional(),
 })
 
 /**

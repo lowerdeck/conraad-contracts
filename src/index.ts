@@ -1,4 +1,5 @@
-export * from './additions'
+export * from './edits'
+export * from './evaluation'
 export * from './evaluator'
 export * from './expressions'
 export * from './inputs'
