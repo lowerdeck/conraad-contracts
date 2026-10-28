@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { appendix } from './appendix'
+import { conditionsPlacement } from './conditions-placement'
 import { RichText } from './common'
 import { DefinitionListItem, DefinitionListSection, definitionListSection } from './definition-list'
 import { ListItem, ListSection, listSection } from './list'
@@ -13,6 +14,7 @@ import { SignatureParty, SignatureSection, signatureSection } from './signature'
 export * from './appendix'
 export * from './common'
 export * from './conditional'
+export * from './conditions-placement'
 export * from './definition-list'
 export * from './form'
 export * from './form-validation'
@@ -115,6 +117,9 @@ export const contractStructure = z.object({
 
   /** The ID of the numbering that numbers the appendices, of which only the first level is used. */
   appendix_numbering: z.string().max(32).nullable().optional(),
+
+  /** Where conditions of the contractor go, or `null` for right before the signatures. */
+  contractor_conditions: conditionsPlacement.nullable().optional(),
 })
 
 export type ContractStructure = z.output<typeof contractStructure>
