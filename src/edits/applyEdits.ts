@@ -55,6 +55,7 @@ function removeItems(sections: ContractSection[], ids: Set<string>): ContractSec
   return keep(sections).map(section => {
     switch (section.type) {
     case 'text':
+    case 'parties':
       return section
     case 'list':
       return {...section, items: keepListItems(section.items)}

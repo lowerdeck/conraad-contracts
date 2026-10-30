@@ -8,6 +8,7 @@ import {
   HeaderFooter,
   ListItem,
   RichText,
+  partiesBody,
 } from '../structure'
 import { ContractEvaluator, InterpolationResult } from './ContractEvaluator'
 import { formatValue, FormatOptions } from './values'
@@ -106,6 +107,9 @@ class Resolver {
     switch (section.type) {
     case 'text':
       return {...common, type: 'text', body: this.richText(section.body)}
+
+    case 'parties':
+      return {...common, type: 'text', body: this.richText(partiesBody(section))}
 
     case 'list':
       return {

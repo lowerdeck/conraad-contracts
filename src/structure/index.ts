@@ -8,6 +8,7 @@ import { textSection } from './text'
 import { form } from './form'
 import { headerFooter } from './header-footer'
 import { numberings } from './numbering'
+import { partiesBody, partiesSection } from './parties'
 import { SignatureParty, SignatureSection, signatureSection } from './signature'
 
 // @index
@@ -22,6 +23,7 @@ export * from './header-footer'
 export * from './images'
 export * from './list'
 export * from './numbering'
+export * from './parties'
 export * from './signature'
 export * from './text'
 export * from './variable'
@@ -31,6 +33,7 @@ export * from './variable'
 
 export const contractSection = z.discriminatedUnion('type', [
   textSection,
+  partiesSection,
   listSection,
   definitionListSection,
   signatureSection,
@@ -50,6 +53,8 @@ export namespace ContractSection {
       return definitionListSection.parse({name})
     case 'signature':
       return signatureSection.parse({name})
+    case 'parties':
+      return partiesSection.parse({name})
     }
   }
 
@@ -66,6 +71,8 @@ export namespace ContractSection {
       return [section.preamble?.text, section.postamble?.text, ...section.items.map(it => it.body)]
     case 'signature':
       return [section.preamble?.text, section.postamble?.text, ...section.parties.map(it => it.details)]
+    case 'parties':
+      return [partiesBody(section)]
     }
   }
 

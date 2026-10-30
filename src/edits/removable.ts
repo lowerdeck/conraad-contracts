@@ -7,6 +7,7 @@ import { ContractSection, ListItem } from '../structure'
 export function isRemovable(sections: ContractSection[], id: string): boolean {
   const section = sections.find(it => it.id === id)
   if (section != null) {
+    if (section.type === 'parties') { return false }
     return !section.required && !hasRequiredItems(section)
   }
 
@@ -24,6 +25,7 @@ export function isRemovable(sections: ContractSection[], id: string): boolean {
 function hasRequiredItems(section: ContractSection): boolean {
   switch (section.type) {
   case 'text':
+  case 'parties':
     return false
   case 'list':
     return ListItem.flatten(section.items).some(it => it.item.required)
