@@ -10,6 +10,7 @@ export const partiesSection = z.object({
   type:       z.literal('parties').default('parties'),
   preamble:   richText().default(defaultPreamble),
   producer:   richText().default(defaultProducer),
+  infix:      richText().default(defaultInfix),
   contractor: richText().default(defaultContractor),
   postamble:  richText().default(defaultPostamble),
 })
@@ -24,15 +25,19 @@ export function partiesBody(section: PartiesSection): RichText {
     type:    'doc',
     content: [
       ...section.preamble?.content ?? [],
-      {
-        type:    'orderedList',
-        content: [section.producer, section.contractor].map(party => ({
-          type:    'listItem',
-          content: party?.content ?? [paragraph([])],
-        })),
-      },
+      party(section.producer, 1),
+      ...section.infix?.content ?? [],
+      party(section.contractor, 2),
       ...section.postamble?.content ?? [],
     ],
+  }
+}
+
+function party(text: RichText, number: number) {
+  return {
+    type:    'orderedList',
+    attrs:   {start: number},
+    content: [{type: 'listItem', content: text?.content ?? [paragraph([])]}],
   }
 }
 
@@ -58,6 +63,11 @@ function defaultProducer(): RichText {
       expression('organisation.representative'),
       text(', hierna te noemen “Producent”;'),
     ]),
+  ])
+}
+
+function defaultInfix(): RichText {
+  return doc([
     paragraph([text('en')]),
   ])
 }

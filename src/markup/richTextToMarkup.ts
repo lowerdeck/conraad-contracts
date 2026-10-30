@@ -24,7 +24,7 @@ function block(node: RichTextNode): string {
 
   case 'bulletList':
   case 'orderedList':
-    return listItems(node).map((text, index) => `${node.type === 'bulletList' ? '-' : `${index + 1}.`} ${text}`).join('\n')
+    return listItems(node).map((text, index) => `${node.type === 'bulletList' ? '-' : `${(node.attrs?.start ?? 1) + index}.`} ${text}`).join('\n')
 
   default:
     return inline(node.content)
