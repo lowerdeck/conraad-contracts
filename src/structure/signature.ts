@@ -8,7 +8,7 @@ export const signatureParty = z.object({
   id:  id(),
   $if: conditional().optional(),
 
-  /** Who signs, like "Producent" or "Opdrachtnemer". */
+  /** Who signs, like "Opdrachtgever" or "Opdrachtnemer". */
   label: z.string().min(1).max(255).nullable().default(null),
 
   /** Shown below the signature, typically the name and capacity of the signatory. */

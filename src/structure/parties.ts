@@ -61,7 +61,7 @@ function defaultProducer(): RichText {
       expression('organisation.kvk_nummer'),
       text(', hierbij rechtsgeldig vertegenwoordigd door '),
       expression('organisation.representative'),
-      text(', hierna te noemen “Producent”;'),
+      text(', hierna te noemen “Opdrachtgever”;'),
     ]),
   ])
 }
@@ -94,7 +94,7 @@ function defaultContractor(): RichText {
 function defaultPostamble(): RichText {
   return doc([
     paragraph([text('hierna gezamenlijk te noemen “Partijen”.')]),
-    paragraph([text('Daar waar in deze overeenkomst en de Algemene Bepalingen wordt gerefereerd aan hij/hem wordt tevens bedoeld zij/haar of hen.')]),
+    paragraph([text('Daar waar in deze overeenkomst wordt gerefereerd aan hij/hem wordt tevens bedoeld zij/haar of hen.')]),
   ])
 }
 
