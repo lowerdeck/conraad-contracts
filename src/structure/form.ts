@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { id } from './common'
+import { conditional } from './conditional'
 import { booleanVariable, CalculatedVariable, calculatedVariable, inputVariable, Variable } from './variable'
 
 export const formField = z.object({
@@ -22,6 +23,11 @@ export const formFieldset = z.object({
   title:    z.string().min(1).max(255).nullable().default(null),
   preamble: z.string().max(2048).min(1).optional(),
   icon:     z.string().max(64).nullable().optional(),
+
+  /**
+   * When the fieldset applies at all, like only for some kinds of assignments. Otherwise it's left out of the form.
+   */
+  $if: conditional().optional(),
 
   /**
    * Makes the fieldset conditional: its fields are only shown when this is switched on.

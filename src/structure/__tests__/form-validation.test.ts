@@ -55,6 +55,15 @@ describe('validateFormValues', () => {
     expect(validateFormValues(form, {share: 50, code: 'abcdef', kind: 'a', start: '2026-01-31'})).toEqual([])
   })
 
+
+  it('leaves out the fields of a fieldset that does not apply', () => {
+    const $if = [[{input: 'travel', operator: '==' as const, operand: 'true'}]]
+    const form = formOf(fieldset([field({type: 'currency', name: 'rate'})], {$if}))
+
+    expect(validateFormValues(form, {}, () => false)).toEqual([])
+    expect(validateFormValues(form, {}, () => true)).toEqual([{name: 'rate', code: 'required'}])
+  })
+
 })
 
 function formOf(...fieldsets: FormFieldset[]): Form {

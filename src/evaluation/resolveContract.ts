@@ -5,12 +5,14 @@ import {
   ContractSection,
   ContractStructure,
   form,
+  Form,
   HeaderFooter,
   ListItem,
   RichText,
   partiesBody,
 } from '../structure'
 import { ContractEvaluator, InterpolationResult } from './ContractEvaluator'
+import { isRequiredValue } from './unfilled'
 import { formatValue, FormatOptions } from './values'
 
 /**
@@ -34,8 +36,9 @@ export interface ResolveOptions extends FormatOptions {
 export interface InterpolatedNode {
   type:  typeof interpolatedNodeType
   attrs: {
+    /** For `unfilled`, the label of what's missing. */
     text:   string
-    status: 'value' | 'missing' | 'error'
+    status: 'value' | 'missing' | 'unfilled' | 'error'
   }
 }
 
@@ -44,9 +47,10 @@ export const interpolatedNodeType = 'interpolated'
 export const defaultInterpolationPlaceholder = '________'
 
 /**
- * What an interpolation reads like, or `null` if it's left out.
+ * What an interpolation reads like, or `null` if it's left out. A required value that is missing is `unfilled`, unless
+ * the template asks for a placeholder to fill in by hand.
  */
-export function interpolatedNode(result: InterpolationResult, attrs: InterpolationAttrs, options: FormatOptions): InterpolatedNode | null {
+export function interpolatedNode(result: InterpolationResult, attrs: InterpolationAttrs, options: FormatOptions, unfilledLabel: string | null = null): InterpolatedNode | null {
   const node = (text: string, status: InterpolatedNode['attrs']['status']): InterpolatedNode => ({
     type:  interpolatedNodeType,
     attrs: {text, status},
@@ -56,8 +60,8 @@ export function interpolatedNode(result: InterpolationResult, attrs: Interpolati
   case 'value':
     return node(formatValue(result.value, options), 'value')
   case 'missing':
-    if (attrs.empty !== 'placeholder') { return null }
-    return node(attrs.placeholder ?? defaultInterpolationPlaceholder, 'missing')
+    if (attrs.empty === 'placeholder') { return node(attrs.placeholder ?? defaultInterpolationPlaceholder, 'missing') }
+    return unfilledLabel == null ? null : node(unfilledLabel, 'unfilled')
   case 'error':
     return node(`{{${result.expression}}}`, 'error')
   }
@@ -75,24 +79,23 @@ class Resolver {
     private readonly options: ResolveOptions,
   ) {}
 
+  private form = form.parse({})
+
   public resolve(structure: ContractStructure): ContractStructure {
-    const appendices = structure.appendices.filter(it => this.visible(it.$if))
-    const appendixSections = new Set(appendices.map(it => it.section))
-    const hiddenSections = new Set(
-      structure.appendices.filter(it => it.type === 'section' && !appendixSections.has(it.section)).map(it => it.section),
-    )
+    this.form = structure.form
+    const attachments = structure.attachments.filter(it => this.visible(it.$if))
 
     return {
       sections: structure.sections
-        .filter(it => this.visible(it.$if) && !hiddenSections.has(it.id))
+        .filter(it => this.visible(it.$if))
         .map(it => this.section(it)),
 
       numberings:         structure.numberings,
       form:               form.parse({}),
       header:             this.headerFooter(structure.header),
       footer:             this.headerFooter(structure.footer),
-      appendices:         appendices.map(({$if, ...appendix}) => appendix),
-      appendix_numbering: structure.appendix_numbering,
+      attachments:          attachments.map(({$if, ...attachment}) => attachment),
+      attachment_numbering: structure.attachment_numbering,
     }
   }
 
@@ -197,8 +200,15 @@ class Resolver {
   }
 
   private interpolation(attrs: Record<string, any>): InterpolatedNode | null {
-    const result = this.evaluator.interpolate(attrs.expression ?? '')
-    return interpolatedNode(result, attrs, this.options)
+    const expression = attrs.expression ?? ''
+    const result = this.evaluator.interpolate(expression)
+    return interpolatedNode(result, attrs, this.options, this.unfilledLabel(expression))
+  }
+
+  // Fields are known by their title. What's known from the assignment is labeled by whoever shows it.
+  private unfilledLabel(expression: string): string | null {
+    if (!isRequiredValue(expression, this.form)) { return null }
+    return Form.variables(this.form).find(it => it.name === expression.trim())?.title ?? expression.trim()
   }
 
   // #endregion

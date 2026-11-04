@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { appendix } from './appendix'
+import { attachment } from './attachment'
 import { conditionsPlacement } from './conditions-placement'
 import { RichText } from './common'
 import { DefinitionListItem, DefinitionListSection, definitionListSection } from './definition-list'
@@ -12,7 +12,7 @@ import { partiesBody, partiesSection } from './parties'
 import { SignatureParty, SignatureSection, signatureSection } from './signature'
 
 // @index
-export * from './appendix'
+export * from './attachment'
 export * from './common'
 export * from './conditional'
 export * from './conditions-placement'
@@ -25,6 +25,7 @@ export * from './list'
 export * from './numbering'
 export * from './parties'
 export * from './signature'
+export * from './structure-validation'
 export * from './text'
 export * from './variable'
 // /index
@@ -120,10 +121,10 @@ export const contractStructure = z.object({
   header:     headerFooter.optional(),
   footer:     headerFooter.optional(),
 
-  appendices: z.array(appendix).default([]),
+  attachments: z.array(attachment).default([]),
 
-  /** The ID of the numbering that numbers the appendices, of which only the first level is used. */
-  appendix_numbering: z.string().max(32).nullable().optional(),
+  /** The ID of the numbering that numbers the attachments, of which only the first level is used. */
+  attachment_numbering: z.string().max(32).nullable().optional(),
 
   /** Where conditions of the contractor go, or `null` for right before the signatures. */
   contractor_conditions: conditionsPlacement.nullable().optional(),

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { ContractStructure, contractStructure, ListSection, TextSection, Variable } from '../../structure'
 import { ContractEvaluator } from '../ContractEvaluator'
 import { resolveContract } from '../resolveContract'
+import { unfilledValues } from '../unfilled'
 
 describe('resolveContract', () => {
 
@@ -40,6 +41,27 @@ describe('resolveContract', () => {
       {type: 'interpolated', attrs: {text: '€\u00a01.500,00', status: 'value'}},
       {type: 'interpolated', attrs: {text: '…', status: 'missing'}},
     ))
+  })
+
+  it('marks required values that are missing as unfilled', () => {
+    const body = paragraph(
+      expression('missing'),
+      expression('remarks'),
+      expression('organisation.kvk_nummer'),
+      expression('organisation.kvk_nummer', {empty: 'placeholder'}),
+    )
+    const form = {fieldsets: [{fields: [
+      {variable: {type: 'text', name: 'missing', title: 'Missing'}},
+      {variable: {type: 'text', name: 'remarks', title: 'Remarks'}, optional: true},
+    ]}]}
+    const result = resolve(structure({sections: [{id: 'a', type: 'text', body}], form}), {})
+
+    expect((result.sections[0] as TextSection).body).toEqual(paragraph(
+      {type: 'interpolated', attrs: {text: 'Missing', status: 'unfilled'}},
+      {type: 'interpolated', attrs: {text: 'organisation.kvk_nummer', status: 'unfilled'}},
+      {type: 'interpolated', attrs: {text: '________', status: 'missing'}},
+    ))
+    expect(unfilledValues(result)).toEqual(['Missing', 'organisation.kvk_nummer'])
   })
 
   it('leaves out the form and required flags', () => {

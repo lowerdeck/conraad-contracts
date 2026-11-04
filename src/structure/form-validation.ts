@@ -1,15 +1,17 @@
+import { Conditional } from './conditional'
 import { Form, FormField } from './form'
 import { InputVariable } from './variable'
 
 /**
  * Checks the values filled in on a form: required fields must have a value, and values must respect their field's
- * validation. Fields of a fieldset that is switched off are left out. Values that are absent fall back to their
- * field's default.
+ * validation. Fields of a fieldset that doesn't apply, or is switched off, are left out. Values that are absent fall
+ * back to their field's default.
  */
-export function validateFormValues(form: Form, values: Record<string, unknown>): FormValueIssue[] {
+export function validateFormValues(form: Form, values: Record<string, unknown>, applies: (conditional: Conditional | undefined) => boolean = () => true): FormValueIssue[] {
   const issues: FormValueIssue[] = []
 
   for (const fieldset of form.fieldsets) {
+    if (!applies(fieldset.$if)) { continue }
     if (fieldset.toggle != null && resolveValue(fieldset.toggle, values) !== true) { continue }
 
     for (const field of fieldset.fields) {
