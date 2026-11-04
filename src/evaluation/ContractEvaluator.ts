@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon'
 import { errorMessage } from 'ytil'
+import { EmploymentType, isEmploymentType } from '../employment-type'
 import { Evaluator } from '../evaluator'
 import { parseExpression } from '../expressions'
 import { MissingValue } from '../missing-value'
@@ -41,6 +42,16 @@ export class ContractEvaluator {
       return {type: 'value', value: this.formatForVariable(expression, result) ?? result}
     } catch (error) {
       return {type: 'error', expression, message: errorMessage(error)}
+    }
+  }
+
+  /** How the contractor works, which decides how the parties section describes them. */
+  public employmentType(): EmploymentType | null {
+    try {
+      const value = this.evaluate('contractor.profile.employment_type')
+      return isEmploymentType(value) ? value : null
+    } catch {
+      return null
     }
   }
 

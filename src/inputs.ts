@@ -36,6 +36,7 @@ export const contractInputs: ContractInput[] = [
     root:       'contractor',
     properties: [
       {path: 'invite_email', type: 'text'},
+      {path: 'profile.employment_type', type: 'text'},
       {path: 'user.first_name', type: 'text'},
       {path: 'user.last_name', type: 'text'},
       {path: 'user.full_name', type: 'text'},

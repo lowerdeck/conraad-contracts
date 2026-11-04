@@ -1,4 +1,5 @@
 export * from './edits'
+export * from './employment-type'
 export * from './evaluation'
 export * from './evaluator'
 export * from './expressions'

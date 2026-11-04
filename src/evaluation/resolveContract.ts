@@ -90,10 +90,10 @@ class Resolver {
         .filter(it => this.visible(it.$if))
         .map(it => this.section(it)),
 
-      numberings:         structure.numberings,
-      form:               form.parse({}),
-      header:             this.headerFooter(structure.header),
-      footer:             this.headerFooter(structure.footer),
+      numberings:           structure.numberings,
+      form:                 form.parse({}),
+      header:               this.headerFooter(structure.header),
+      footer:               this.headerFooter(structure.footer),
       attachments:          attachments.map(({$if, ...attachment}) => attachment),
       attachment_numbering: structure.attachment_numbering,
     }
@@ -112,7 +112,7 @@ class Resolver {
       return {...common, type: 'text', body: this.richText(section.body)}
 
     case 'parties':
-      return {...common, type: 'text', body: this.richText(partiesBody(section))}
+      return {...common, type: 'text', body: this.richText(partiesBody(section, this.evaluator.employmentType()))}
 
     case 'list':
       return {

@@ -8,7 +8,7 @@ import { textSection } from './text'
 import { form } from './form'
 import { headerFooter } from './header-footer'
 import { numberings } from './numbering'
-import { partiesBody, partiesSection } from './parties'
+import { partiesSection, partiesTexts } from './parties'
 import { SignatureParty, SignatureSection, signatureSection } from './signature'
 
 // @index
@@ -73,7 +73,7 @@ export namespace ContractSection {
     case 'signature':
       return [section.preamble?.text, section.postamble?.text, ...section.parties.map(it => it.details)]
     case 'parties':
-      return [partiesBody(section)]
+      return partiesTexts(section)
     }
   }
 
