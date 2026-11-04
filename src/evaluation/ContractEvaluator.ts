@@ -109,6 +109,9 @@ export class ContractEvaluator {
 
 }
 
+/** The filters that may follow an expression, like `start_date | date`. */
+export const contractFilters = ['date', 'upper', 'lower']
+
 /**
  * The value filled in for a variable, or else its default.
  */

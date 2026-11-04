@@ -1,7 +1,7 @@
 import { Property } from '@jsep-plugin/object'
 import { SpreadElement } from '@jsep-plugin/spread'
 import { errorMessage, isFunction } from 'ytil'
-import { parseExpression, parseFilterSegment } from './expressions'
+import { parseExpression, ParsedExpression, parseFilterSegment } from './expressions'
 import { blacklist, global, jsep } from './jsep'
 import { MissingValue } from './missing-value'
 
@@ -33,16 +33,8 @@ export class Evaluator {
     expression = expression.trim()
     if (expression === '') { return null }
 
-    if (expression.length > this.options.maxLen) {
-      throw new Error(`Expression too long (>${this.options.maxLen})`)
-    }
-
     try {
-      const {mainRaw, mainParsed, filtersParsed} = parseExpression(expression)
-
-      // Validate + gather node count/depth
-      const stats = {nodes: 0}
-      this.validate(mainParsed, stats, 0)
+      const {mainRaw, mainParsed, filtersParsed} = this.parse(expression)
 
       let result: unknown = this.evaluateNode(mainParsed, 0)
       if (result == null) {
@@ -57,9 +49,6 @@ export class Evaluator {
       }
 
       for (const {name, argsParsed} of filtersParsed) {
-        for (const argParsed of argsParsed) {
-          this.validate(argParsed, stats, 0)
-        }
         const args = argsParsed.map(ast => this.evaluateNode(ast, 0))
         result = this.delegate.runFilter(name, result, args)
       }
@@ -69,6 +58,27 @@ export class Evaluator {
       const message = errorMessage(error)
       throw new EvaluatorError(message, expression, error)
     }
+  }
+
+  /**
+   * Parses the expression and checks that it may be evaluated, without evaluating it. Throws if it can't.
+   */
+  public parse(expression: string): ParsedExpression {
+    if (expression.length > this.options.maxLen) {
+      throw new Error(`Expression too long (>${this.options.maxLen})`)
+    }
+
+    const parsed = parseExpression(expression)
+
+    const stats = {nodes: 0}
+    this.validate(parsed.mainParsed, stats, 0)
+    for (const {argsParsed} of parsed.filtersParsed) {
+      for (const argParsed of argsParsed) {
+        this.validate(argParsed, stats, 0)
+      }
+    }
+
+    return parsed
   }
 
   // #endregion
