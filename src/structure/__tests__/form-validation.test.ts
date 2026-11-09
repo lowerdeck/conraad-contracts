@@ -64,6 +64,17 @@ describe('validateFormValues', () => {
     expect(validateFormValues(form, {}, () => true)).toEqual([{name: 'rate', code: 'required'}])
   })
 
+  it('only checks the fieldsets of the given side', () => {
+    const form = formOf(
+      fieldset([field({type: 'text', name: 'name'})]),
+      fieldset([field({type: 'text', name: 'iban'})], {side: 'contractor'}),
+    )
+
+    expect(validateFormValues(form, {}, undefined, 'producer')).toEqual([{name: 'name', code: 'required'}])
+    expect(validateFormValues(form, {}, undefined, 'contractor')).toEqual([{name: 'iban', code: 'required'}])
+    expect(validateFormValues(form, {})).toHaveLength(2)
+  })
+
 })
 
 function formOf(...fieldsets: FormFieldset[]): Form {

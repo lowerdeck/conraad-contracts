@@ -40,6 +40,12 @@ export const formFieldset = z.object({
    * Starts a new page of the form with this fieldset. The first fieldset always starts the first page.
    */
   new_page: z.boolean().optional(),
+
+  /**
+   * Who fills in the fieldset: the producer when drawing up the contract (the default), or the contractor when it's
+   * offered to them. Each side has a form of its own, but the values end up in the same place.
+   */
+  side: formSide().optional(),
 })
 
 export const form = z.object({
@@ -47,7 +53,12 @@ export const form = z.object({
   calculated: z.array(calculatedVariable).default([]),
 })
 
+export function formSide() {
+  return z.enum(['producer', 'contractor'])
+}
+
 export type Form = z.output<typeof form>
+export type FormSide = z.output<ReturnType<typeof formSide>>
 export type FormFieldset = z.output<typeof formFieldset>
 export type FormField = z.output<typeof formField>
 
@@ -72,16 +83,37 @@ export namespace Form {
     return result
   }
 
+  /**
+   * The fieldsets that the given side fills in.
+   */
+  export function fieldsetsOf(form: Form, side: FormSide): FormFieldset[] {
+    return form.fieldsets.filter(it => FormFieldset.side(it) === side)
+  }
+
+  /**
+   * The names of the variables that the given side fills in: its fields and the toggles of its fieldsets.
+   */
+  export function inputNamesOf(form: Form, side: FormSide): Set<string> {
+    const names = new Set<string>()
+    for (const fieldset of fieldsetsOf(form, side)) {
+      if (fieldset.toggle != null) {
+        names.add(fieldset.toggle.name)
+      }
+      fieldset.fields.forEach(it => names.add(it.variable.name))
+    }
+    return names
+  }
+
   export function fieldset(form: Form, id: string): FormFieldset | null {
     return form.fieldsets.find(it => it.id === id) ?? null
   }
 
   /**
-   * The fieldsets, split into pages where they start a new page.
+   * The fieldsets of a side, split into pages where they start a new page.
    */
-  export function pages(form: Form): FormFieldset[][] {
+  export function pages(form: Form, side: FormSide): FormFieldset[][] {
     const pages: FormFieldset[][] = []
-    for (const fieldset of form.fieldsets) {
+    for (const fieldset of fieldsetsOf(form, side)) {
       if (pages.length === 0 || fieldset.new_page) {
         pages.push([])
       }
@@ -107,6 +139,14 @@ export namespace Form {
 
     const variable = form.calculated.find(it => it.name === name)
     return variable == null ? null : {kind: 'calculated', variable}
+  }
+
+}
+
+export namespace FormFieldset {
+
+  export function side(fieldset: FormFieldset): FormSide {
+    return fieldset.side ?? 'producer'
   }
 
 }
