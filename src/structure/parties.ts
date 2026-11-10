@@ -88,7 +88,7 @@ function defaultProducer(): RichText {
       text(`, ${tradeRegister} `),
       expression('organisation.kvk_nummer'),
       text(', hierbij rechtsgeldig vertegenwoordigd door '),
-      expression('organisation.representative'),
+      expression('user.full_name'),
       text(', hierna te noemen “Opdrachtgever”;'),
     ]),
   ])
