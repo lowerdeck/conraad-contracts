@@ -1,5 +1,6 @@
 import { ContractSection, ListItem } from '../structure'
 import { containers } from './containers'
+import { ContractAddition } from './addition'
 import { ContractEdit } from './edit'
 import { isRemovable } from './removable'
 import { ContractRemoval } from './removal'
@@ -25,16 +26,19 @@ export function applyEdits(sections: ContractSection[], edits: ContractEdit[]): 
     sections: removeItems(merged.sections, new Set(removed.map(it => it.target))),
     merged:   merged.sections,
     removed:  removed,
+    invalid:  merged.invalid,
     orphans:  edits.filter(it => orphans.has(it)),
   }
 }
 
 /**
- * The removals of sections or items that may not be removed.
+ * The removals and replacements of sections or items that may not be removed.
  */
-export function invalidRemovals(sections: ContractSection[], edits: ContractEdit[]): ContractRemoval[] {
-  const {merged, removed} = applyEdits(sections, edits)
-  return removed.filter(it => !isRemovable(merged, it.target))
+export function invalidEdits(sections: ContractSection[], edits: ContractEdit[]): ContractEdit[] {
+  const {merged, removed, invalid} = applyEdits(sections, edits)
+  const invalidRemovals = new Set<ContractEdit>(removed.filter(it => !isRemovable(merged, it.target)))
+  const invalidReplacements = new Set<ContractEdit>(invalid)
+  return edits.filter(it => invalidRemovals.has(it) || invalidReplacements.has(it))
 }
 
 export interface EditsResult {
@@ -45,6 +49,10 @@ export interface EditsResult {
   merged: ContractSection[]
 
   removed: ContractRemoval[]
+
+  /** Replacements of what may not be removed, which are orphans as well. */
+  invalid: ContractAddition[]
+
   orphans: ContractEdit[]
 }
 
