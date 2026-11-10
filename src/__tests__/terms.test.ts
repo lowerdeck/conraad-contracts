@@ -15,6 +15,10 @@ describe('ContractTerms', () => {
         .toEqual('€ 2.000,00 excl. BTW')
     })
 
+    it('has nothing to show without an amount', () => {
+      expect(ContractTerms.formatRate({rate_interval: 'day', rate_amount: null})).toBeNull()
+    })
+
   })
 
 })

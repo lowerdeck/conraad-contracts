@@ -2,11 +2,11 @@ import { z } from 'zod'
 import { contractLocale, formatCurrency } from './evaluation/values'
 
 /**
- * The rate and conditions of a contractor (a "voorwaardenpakket"). Amounts are in euros, excluding BTW.
+ * The rate (if any) and conditions of a contractor (a "voorwaardenpakket"). Amounts are in euros, excluding BTW.
  */
 export const contractTerms = z.object({
   rate_interval: rateInterval(),
-  rate_amount:   z.number().nonnegative(),
+  rate_amount:   z.number().nonnegative().nullable().default(null),
   conditions:    z.array(z.string().min(1).max(2048)).default([]),
 })
 
@@ -19,7 +19,9 @@ export type RateInterval = z.output<ReturnType<typeof rateInterval>>
 
 export namespace ContractTerms {
 
-  export function formatRate(terms: ContractTerms, locale: string = contractLocale) {
+  export function formatRate(terms: Pick<ContractTerms, 'rate_interval' | 'rate_amount'>, locale: string = contractLocale) {
+    if (terms.rate_amount == null) { return null }
+
     const amount = formatCurrency(terms.rate_amount, rateCurrency, locale)
     if (terms.rate_interval === 'fixed') {
       return `${amount} excl. BTW`
