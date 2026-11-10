@@ -18,13 +18,16 @@ export const additionAnchor = z.object({
 
 /**
  * A section or item that is added to a contract after it was drawn up from its template. Its text is specific to the
- * contract, so it has no conditions or interpolations.
+ * contract, so it has no interpolations.
+ *
+ * With `replaces`, it takes the place of the template's section or item with the same ID, as an editable copy of it.
+ * It keeps that one's conditions and what's in it, and falls back to its anchor if that one is gone.
  */
 export const contractAddition = z.discriminatedUnion('type', [
-  z.object({type: z.literal('section'), anchor: additionAnchor, item: contractSection}),
-  z.object({type: z.literal('list-item'), anchor: additionAnchor, item: listItem(1)}),
-  z.object({type: z.literal('definition'), anchor: additionAnchor, item: definitionListItem}),
-  z.object({type: z.literal('party'), anchor: additionAnchor, item: signatureParty}),
+  z.object({type: z.literal('section'), anchor: additionAnchor, item: contractSection, replaces: z.boolean().optional()}),
+  z.object({type: z.literal('list-item'), anchor: additionAnchor, item: listItem(1), replaces: z.boolean().optional()}),
+  z.object({type: z.literal('definition'), anchor: additionAnchor, item: definitionListItem, replaces: z.boolean().optional()}),
+  z.object({type: z.literal('party'), anchor: additionAnchor, item: signatureParty, replaces: z.boolean().optional()}),
 ])
 
 export type AdditionAnchor = z.output<typeof additionAnchor>
