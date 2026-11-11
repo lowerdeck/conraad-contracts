@@ -64,6 +64,51 @@ describe('resolveContract', () => {
     expect(unfilledValues(result)).toEqual(['Missing', 'organisation.kvk_nummer'])
   })
 
+  it('repeats sections and items for every item, with the item in scope', () => {
+    const result = resolve(structure({
+      sections: [
+        {
+          id:    'l',
+          type:  'list',
+          items: [{
+            id:    'i',
+            $each: {in: 'specialisms', as: 'specialism'},
+            $if:   [['specialism.text != "B"']],
+            text:  paragraph(expression('specialism.text')),
+            items: [{id: 's', text: null}],
+          }],
+        },
+        {id: 't', type: 'text', $each: {in: 'specialisms', as: 'specialism'}, body: null},
+      ],
+    }), {specialisms: [{text: 'A'}, {text: 'B'}, {text: 'C'}]})
+
+    const list = result.sections[0] as ListSection
+    expect(list.items.map(it => it.id)).toEqual(['i~0', 'i~2'])
+    expect(list.items.map(it => it.items.map(sub => sub.id))).toEqual([['s~0'], ['s~2']])
+    expect(list.items[1].text).toEqual(paragraph({type: 'interpolated', attrs: {text: 'C', status: 'value'}}))
+    expect(result.sections.map(it => it.id)).toEqual(['l', 't~0', 't~1', 't~2'])
+  })
+
+  it('leaves out what repeats for an empty list, which is also false in a condition', () => {
+    const result = resolve(structure({
+      sections: [
+        {id: 'a', type: 'text', body: null, $each: {in: 'specialisms', as: 'specialism'}},
+        {id: 'b', type: 'text', body: null, $if: [['specialisms']]},
+      ],
+    }), {specialisms: []})
+
+    expect(result.sections).toEqual([])
+  })
+
+  it('lists items with the list filter', () => {
+    const body = paragraph(expression('specialisms | list("text")'))
+    const result = resolve(structure({sections: [{id: 'a', type: 'text', body}]}), {specialisms: [{text: 'A'}, {text: 'B'}, {text: 'C'}]})
+
+    expect((result.sections[0] as TextSection).body).toEqual(paragraph(
+      {type: 'interpolated', attrs: {text: 'A, B en C', status: 'value'}},
+    ))
+  })
+
   it('leaves out the form and required flags', () => {
     const result = resolve(structure({
       sections: [{id: 'a', type: 'text', body: null, required: true}],
@@ -89,6 +134,7 @@ const variables: Variable[] = [
   {type: 'currency', name: 'fee', title: 'Fee', currency: 'EUR', decimals: true},
   {type: 'boolean', name: 'exclusive', title: 'Exclusive'},
   {type: 'text', name: 'missing', title: 'Missing'},
+  {type: 'array', name: 'specialisms', title: 'Specialisme', fields: [{type: 'text', name: 'text', title: 'Tekst'}]},
 ]
 
 function structure(input: unknown): ContractStructure {

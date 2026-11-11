@@ -4,9 +4,9 @@ import { EmploymentType, isEmploymentType } from '../employment-type'
 import { Evaluator } from '../evaluator'
 import { parseExpression } from '../expressions'
 import { MissingValue } from '../missing-value'
-import { Conditional, Variable } from '../structure'
+import { Conditional, Each, InputVariable, Variable } from '../structure'
 import { evaluateConditional } from './conditions'
-import { formatCurrency, formatDate, toDateTime } from './values'
+import { formatCurrency, formatDate, formatList, toDateTime } from './values'
 
 /**
  * Evaluates the expressions and conditions of a contract, against the values filled in on its form and the inputs
@@ -17,11 +17,12 @@ export class ContractEvaluator {
   constructor(
     private readonly delegate: ContractEvaluatorDelegate,
     private readonly options: ContractEvaluatorOptions = {},
+    private readonly scope: Record<string, InputVariable[]> = {},
   ) {}
 
   private readonly evaluator = new Evaluator({
     resolveVariable: name => this.resolveVariable(name),
-    runFilter:       (name, value) => this.runFilter(name, value),
+    runFilter:       (name, value, args) => this.runFilter(name, value, args),
     autoFilter:      value => value instanceof DateTime ? 'date' : undefined,
   })
 
@@ -57,6 +58,45 @@ export class ContractEvaluator {
 
   public isVisible(conditional: Conditional | undefined): boolean {
     return evaluateConditional(conditional, expression => this.evaluate(expression))
+  }
+
+  /**
+   * An evaluator for every repetition of something that repeats, with its item in scope. Without `$each`, it's just
+   * this one.
+   */
+  public instances(each: Each | undefined): ContractEvaluator[] {
+    if (each == null) { return [this] }
+
+    let items: unknown
+    try {
+      items = this.evaluate(each.in)
+    } catch {
+      return []
+    }
+    if (!Array.isArray(items)) { return [] }
+
+    const repeat = this.variableByPath(each.in)
+    const fields = repeat?.type === 'array' && 'fields' in repeat ? repeat.fields : []
+    return items.map(item => this.scoped(each.as, itemValue(item, fields), fields))
+  }
+
+  private scoped(name: string, item: unknown, fields: InputVariable[]): ContractEvaluator {
+    const delegate: ContractEvaluatorDelegate = {
+      inputs:         {...this.delegate.inputs, [name]: item},
+      variableByName: it => this.delegate.variableByName(it),
+      value:          it => this.delegate.value(it),
+    }
+    return new ContractEvaluator(delegate, this.options, {...this.scope, [name]: fields})
+  }
+
+  // A variable by its name, or a field of an item in scope by its path, like `specialism.name`.
+  private variableByPath(path: string): Variable | undefined {
+    const [root, ...rest] = path.split('.')
+    const fields = this.scope[root]
+    if (fields != null && rest.length === 1) {
+      return fields.find(it => it.name === rest[0])
+    }
+    return fields == null ? this.delegate.variableByName(path) : undefined
   }
 
   private resolveVariable(name: string): unknown {
@@ -95,7 +135,7 @@ export class ContractEvaluator {
     const {mainRaw, filtersRaw} = parseExpression(expression)
     if (filtersRaw.length > 0) { return null }
 
-    const variable = this.delegate.variableByName(mainRaw)
+    const variable = this.variableByPath(mainRaw)
     switch (variable?.type) {
     case 'choice':
       return variable.options.find(it => it.value === value)?.label ?? null
@@ -106,7 +146,7 @@ export class ContractEvaluator {
     }
   }
 
-  private runFilter(name: string, value: unknown): unknown {
+  private runFilter(name: string, value: unknown, args: unknown[]): unknown {
     switch (name) {
     case 'date': {
       const date = toDateTime(value)
@@ -114,6 +154,7 @@ export class ContractEvaluator {
     }
     case 'upper': return String(value).toUpperCase()
     case 'lower': return String(value).toLowerCase()
+    case 'list': return formatList(value, args[0], args[1], this.options.locale)
     default: throw new Error(`Unknown filter: ${name}`)
     }
   }
@@ -121,7 +162,7 @@ export class ContractEvaluator {
 }
 
 /** The filters that may follow an expression, like `start_date | date`. */
-export const contractFilters = ['date', 'upper', 'lower']
+export const contractFilters = ['date', 'upper', 'lower', 'list']
 
 /**
  * The value filled in for a variable, or else its default.
@@ -131,6 +172,19 @@ export function variableValue(variable: Variable, values: Record<string, unknown
     return values[variable.name]
   }
   return 'default' in variable ? variable.default ?? null : null
+}
+
+// Dates of an item are stored as ISO dates, like those of the form.
+function itemValue(item: unknown, fields: InputVariable[]): unknown {
+  if (item == null || typeof item !== 'object') { return item }
+
+  const result: Record<string, unknown> = {...item}
+  for (const field of fields) {
+    if (field.type === 'date' && typeof result[field.name] === 'string') {
+      result[field.name] = DateTime.fromISO(result[field.name] as string)
+    }
+  }
+  return result
 }
 
 export interface ContractEvaluatorDelegate {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Form, formField, FormField, formFieldset, FormFieldset } from '../form'
 import { validateFormValues } from '../form-validation'
-import { booleanVariable, inputVariable } from '../variable'
+import { arrayVariable, booleanVariable, inputVariable } from '../variable'
 
 describe('validateFormValues', () => {
 
@@ -28,6 +28,18 @@ describe('validateFormValues', () => {
 
     expect(validateFormValues(form, {})).toEqual([])
     expect(validateFormValues(form, {travel: true})).toEqual([{name: 'rate', code: 'required'}])
+  })
+
+  it('checks the number of items of a repeating fieldset, and the fields of each', () => {
+    const repeat = arrayVariable.parse({type: 'array', name: 'specialisms', title: 'Specialisme', min: 1, max: 2})
+    const form = formOf(fieldset([field({type: 'text', name: 'text'})], {repeat}))
+
+    expect(validateFormValues(form, {})).toEqual([{name: 'specialisms', code: 'too_few_items', params: {minimum: 1}}])
+    expect(validateFormValues(form, {specialisms: [{text: 'A'}, {text: ''}, {text: 'C'}]})).toEqual([
+      {name: 'specialisms', code: 'too_many_items', params: {maximum: 2}},
+      {name: 'specialisms.1.text', code: 'required'},
+    ])
+    expect(validateFormValues(form, {specialisms: [{text: 'A'}]})).toEqual([])
   })
 
   it('counts a switch that is not set as off, but requires a yes/no select', () => {

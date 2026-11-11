@@ -75,6 +75,13 @@ export const calculatedVariable = z.object({
   expression: expression(),
 }).extend(variableCommon.shape)
 
+// The items of a repeating fieldset, each an object with the values of its fields.
+export const arrayVariable = z.object({
+  type: z.literal('array'),
+  min:  z.int().nonnegative().optional(),
+  max:  z.int().positive().optional(),
+}).extend(variableCommon.shape)
+
 // Anything that is filled in on the form, as opposed to calculated.
 export const inputVariable = z.discriminatedUnion('type', [
   textVariable,
@@ -85,7 +92,7 @@ export const inputVariable = z.discriminatedUnion('type', [
   choiceVariable,
 ])
 
-export type Variable = InputVariable | CalculatedVariable
+export type Variable = InputVariable | CalculatedVariable | RepeatVariable
 export type TextVariable = z.output<typeof textVariable>
 export type NumberVariable = z.output<typeof numberVariable>
 export type CurrencyVariable = z.output<typeof currencyVariable>
@@ -95,3 +102,9 @@ export type ChoiceVariable = z.output<typeof choiceVariable>
 export type ChoiceOption = z.output<typeof choiceOption>
 export type CalculatedVariable = z.output<typeof calculatedVariable>
 export type InputVariable = z.output<typeof inputVariable>
+export type ArrayVariable = z.output<typeof arrayVariable>
+
+/** The array variable of a repeating fieldset, along with the variables of its fields, which each item has. */
+export interface RepeatVariable extends ArrayVariable {
+  fields: InputVariable[]
+}

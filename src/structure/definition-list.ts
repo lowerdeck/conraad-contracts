@@ -3,10 +3,12 @@ import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import { conditionalBody, contractSectionCommon, id, richText } from './common'
 import { conditional } from './conditional'
+import { each } from './each'
 
 export const definitionListItem = z.object({
-  id:   id(),
-  $if:  conditional().optional(),
+  id:    id(),
+  $if:   conditional().optional(),
+  $each: each().optional(),
   term: z.string().min(1).max(255).nullable().default(null),
   body: richText(),
 
