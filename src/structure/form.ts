@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { id } from './common'
 import { conditional } from './conditional'
-import { booleanVariable, CalculatedVariable, calculatedVariable, inputVariable, Variable } from './variable'
+import { ArrayVariable, arrayVariable, booleanVariable, CalculatedVariable, calculatedVariable, inputVariable, RepeatVariable, Variable } from './variable'
 
 export const formField = z.object({
   id:       id(),
@@ -33,6 +33,11 @@ export const formFieldset = z.object({
    * Makes the fieldset conditional: its fields are only shown when this is switched on.
    */
   toggle: booleanVariable.nullable().optional(),
+
+  /**
+   * Makes the fieldset repeat: its fields are filled in for any number of items, which are stored in this variable.
+   */
+  repeat: arrayVariable.nullable().optional(),
 
   fields: z.array(formField).default([]),
 
@@ -69,7 +74,8 @@ export namespace Form {
   }
 
   /**
-   * All variables in the form, in form order, followed by the calculated ones.
+   * All variables in the form, in form order, followed by the calculated ones. The fields of a repeating fieldset are
+   * part of its array variable instead.
    */
   export function variables(form: Form): Variable[] {
     const result: Variable[] = []
@@ -77,10 +83,31 @@ export namespace Form {
       if (fieldset.toggle != null) {
         result.push(fieldset.toggle)
       }
-      result.push(...fieldset.fields.map(it => it.variable))
+
+      const repeat = FormFieldset.repeatVariable(fieldset)
+      if (repeat != null) {
+        result.push(repeat)
+      } else {
+        result.push(...fieldset.fields.map(it => it.variable))
+      }
     }
     result.push(...form.calculated)
     return result
+  }
+
+  /**
+   * Every variable in the form as it's stored, including the arrays of repeating fieldsets and the fields of their
+   * items. Their names are unique throughout the form.
+   */
+  export function allVariables(form: Form): (Variable | ArrayVariable)[] {
+    return [
+      ...form.fieldsets.flatMap(fieldset => [
+        ...fieldset.toggle == null ? [] : [fieldset.toggle],
+        ...fieldset.repeat == null ? [] : [fieldset.repeat],
+        ...fieldset.fields.map(it => it.variable),
+      ]),
+      ...form.calculated,
+    ]
   }
 
   /**
@@ -91,17 +118,11 @@ export namespace Form {
   }
 
   /**
-   * The names of the variables that the given side fills in: its fields and the toggles of its fieldsets.
+   * The names of the values that the given side fills in: its fields, the toggles of its fieldsets and the arrays of
+   * those that repeat.
    */
   export function inputNamesOf(form: Form, side: FormSide): Set<string> {
-    const names = new Set<string>()
-    for (const fieldset of fieldsetsOf(form, side)) {
-      if (fieldset.toggle != null) {
-        names.add(fieldset.toggle.name)
-      }
-      fieldset.fields.forEach(it => names.add(it.variable.name))
-    }
-    return names
+    return new Set(fieldsetsOf(form, side).flatMap(FormFieldset.inputNames))
   }
 
   export function fieldset(form: Form, id: string): FormFieldset | null {
@@ -123,12 +144,16 @@ export namespace Form {
   }
 
   /**
-   * Finds a variable by its name: a field, the toggle of a fieldset, or a calculated variable.
+   * Finds a variable by its name: a field, the toggle or array of a fieldset, or a calculated variable. Names are
+   * unique throughout the form, including those of the fields of a repeating fieldset.
    */
   export function findVariable(form: Form, name: string): FormVariableLocation | null {
     for (const fieldset of form.fieldsets) {
       if (fieldset.toggle?.name === name) {
         return {kind: 'toggle', fieldset}
+      }
+      if (fieldset.repeat?.name === name) {
+        return {kind: 'repeat', fieldset}
       }
 
       const field = fieldset.fields.find(it => it.variable.name === name)
@@ -149,9 +174,23 @@ export namespace FormFieldset {
     return fieldset.side ?? 'producer'
   }
 
+  /** The names of the values that are filled in on the fieldset: its toggle, and its fields or else its array. */
+  export function inputNames(fieldset: FormFieldset): string[] {
+    return [
+      ...fieldset.toggle == null ? [] : [fieldset.toggle.name],
+      ...fieldset.repeat == null ? fieldset.fields.map(it => it.variable.name) : [fieldset.repeat.name],
+    ]
+  }
+
+  export function repeatVariable(fieldset: FormFieldset): RepeatVariable | null {
+    if (fieldset.repeat == null) { return null }
+    return {...fieldset.repeat, fields: fieldset.fields.map(it => it.variable)}
+  }
+
 }
 
 export type FormVariableLocation =
   | {kind: 'field', fieldset: FormFieldset, field: FormField}
   | {kind: 'toggle', fieldset: FormFieldset}
+  | {kind: 'repeat', fieldset: FormFieldset}
   | {kind: 'calculated', variable: CalculatedVariable}

@@ -3,12 +3,14 @@ import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import { conditionalBody, contractSectionCommon, id, RichText, richText } from './common'
 import { Conditional, conditional } from './conditional'
+import { Each, each } from './each'
 
 export function listItem(level: number): z.ZodType<ListItem> {
   return z.object({
-    id:   id(),
-    $if:  conditional().optional(),
-    text: richText(),
+    id:    id(),
+    $if:   conditional().optional(),
+    $each: each().optional(),
+    text:  richText(),
 
     required: z.boolean().optional(),
     ...(level < 6 && {
@@ -30,6 +32,7 @@ export type ListSection = z.output<typeof listSection>
 export interface ListItem {
   id: string
   $if?: Conditional
+  $each?: Each
   text: RichText
   required?: boolean
   items: ListItem[]

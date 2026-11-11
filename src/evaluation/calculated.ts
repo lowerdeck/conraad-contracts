@@ -3,7 +3,7 @@ import { Evaluator } from '../evaluator'
 import { ParsedExpression } from '../expressions'
 import { contractInputs } from '../inputs'
 import { global, jsep } from '../jsep'
-import { CalculatedVariable, Form, Variable } from '../structure'
+import { CalculatedVariable, Form, InputVariable, Variable } from '../structure'
 import { contractFilters } from './ContractEvaluator'
 
 /**
@@ -22,10 +22,10 @@ export function calculatedVariableError(variable: CalculatedVariable, form: Form
 }
 
 /**
- * Whether the expression parses, may be evaluated, and refers only to what exists: the given variables, the contract
- * inputs and the math functions and constants.
+ * Whether the expression parses, may be evaluated, and refers only to what exists: the given variables, the items in
+ * scope (by the name they're known by, with their fields), the contract inputs and the math functions and constants.
  */
-export function expressionError(expression: string, variables: Variable[]): ExpressionError | null {
+export function expressionError(expression: string, variables: Variable[], scope: ExpressionScope = {}): ExpressionError | null {
   expression = expression.trim()
   if (expression === '') { return {code: 'empty'} }
 
@@ -43,7 +43,7 @@ export function expressionError(expression: string, variables: Variable[]): Expr
   }
 
   for (const reference of expressionReferences(parsed)) {
-    if (!isKnownReference(reference, variables)) {
+    if (!isKnownReference(reference, variables, scope)) {
       return {code: 'unknown_name', name: reference}
     }
   }
@@ -117,8 +117,11 @@ function memberPath(node: jsep.Expression): string | null {
   return null
 }
 
-function isKnownReference(reference: string, variables: Variable[]): boolean {
+function isKnownReference(reference: string, variables: Variable[], scope: ExpressionScope): boolean {
   const [root, ...rest] = reference.split('.')
+  if (root in scope) {
+    return rest.length === 0 || (rest.length <= 2 && scope[root].some(it => it.name === rest[0]))
+  }
   if (variables.some(it => it.name === root)) { return true }
   if (root in global) { return rest.length === 0 }
 
@@ -159,6 +162,9 @@ const validator = new Evaluator({
   runFilter:       value => value,
   autoFilter:      () => undefined,
 })
+
+/** The fields of the items in scope, by the name they're known by. */
+export type ExpressionScope = Record<string, InputVariable[]>
 
 export type ExpressionError =
   | {code: 'empty'}

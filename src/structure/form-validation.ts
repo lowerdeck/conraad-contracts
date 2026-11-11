@@ -15,6 +15,11 @@ export function validateFormValues(form: Form, values: Record<string, unknown>, 
     if (!applies(fieldset.$if)) { continue }
     if (fieldset.toggle != null && resolveValue(fieldset.toggle, values) !== true) { continue }
 
+    if (fieldset.repeat != null) {
+      issues.push(...validateItems(fieldset, values[fieldset.repeat.name]))
+      continue
+    }
+
     for (const field of fieldset.fields) {
       const issue = validateField(field, resolveValue(field.variable, values))
       if (issue != null) {
@@ -27,13 +32,46 @@ export function validateFormValues(form: Form, values: Record<string, unknown>, 
 }
 
 export interface FormValueIssue {
-  /** The name of the field's variable. */
+  /** The name of the field's variable, or for a field of an item, its path like `specialisms.0.name`. */
   name:    string
   code:    FormValueIssueCode
   params?: {minimum?: number, maximum?: number}
 }
 
-export type FormValueIssueCode = 'required' | 'too_short' | 'too_long' | 'below_minimum' | 'above_maximum' | 'invalid_value'
+export type FormValueIssueCode =
+  | 'required'
+  | 'too_short'
+  | 'too_long'
+  | 'below_minimum'
+  | 'above_maximum'
+  | 'too_few_items'
+  | 'too_many_items'
+  | 'invalid_value'
+
+function validateItems(fieldset: FormFieldset, value: unknown): FormValueIssue[] {
+  const {name, min, max} = fieldset.repeat!
+  const items = value ?? []
+  if (!Array.isArray(items)) { return [{name, code: 'invalid_value'}] }
+
+  const issues: FormValueIssue[] = []
+  if (min != null && items.length < min) { issues.push({name, code: 'too_few_items', params: {minimum: min}}) }
+  if (max != null && items.length > max) { issues.push({name, code: 'too_many_items', params: {maximum: max}}) }
+
+  items.forEach((item, index) => {
+    if (item == null || typeof item !== 'object') {
+      issues.push({name: `${name}.${index}`, code: 'invalid_value'})
+      return
+    }
+
+    for (const field of fieldset.fields) {
+      const issue = validateField(field, resolveValue(field.variable, item))
+      if (issue != null) {
+        issues.push({...issue, name: `${name}.${index}.${field.variable.name}`})
+      }
+    }
+  })
+  return issues
+}
 
 function resolveValue(variable: InputVariable, values: Record<string, unknown>): unknown {
   if (variable.name in values) { return values[variable.name] }

@@ -19,7 +19,7 @@ export function evaluateCondition(condition: Condition, evaluate: ExpressionEval
 
   try {
     if (typeof condition === 'string') {
-      return !!value(condition)
+      return isTruthy(value(condition))
     }
 
     const input = value(condition.input)
@@ -60,6 +60,11 @@ export function evaluateCondition(condition: Condition, evaluate: ExpressionEval
 }
 
 export type ExpressionEvaluate = (expression: string) => unknown
+
+// Like in JavaScript, except that an empty list is false.
+function isTruthy(value: unknown) {
+  return Array.isArray(value) ? value.length > 0 : !!value
+}
 
 function isBlank(value: unknown) {
   if (value == null || value === '') { return true }

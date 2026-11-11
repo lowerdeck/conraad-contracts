@@ -4,6 +4,7 @@ import {
   ConditionalBody,
   ContractSection,
   ContractStructure,
+  Each,
   form,
   Form,
   HeaderFooter,
@@ -77,6 +78,7 @@ class Resolver {
   constructor(
     private readonly evaluator: ContractEvaluator,
     private readonly options: ResolveOptions,
+    private readonly suffix: string = '',
   ) {}
 
   private form = form.parse({})
@@ -86,9 +88,7 @@ class Resolver {
     const attachments = structure.attachments.filter(it => this.visible(it.$if))
 
     return {
-      sections: structure.sections
-        .filter(it => this.visible(it.$if))
-        .map(it => this.section(it)),
+      sections: structure.sections.flatMap(it => this.repeated(it, (resolver, id) => resolver.section(it, id))),
 
       numberings:           structure.numberings,
       form:                 form.parse({}),
@@ -99,9 +99,30 @@ class Resolver {
     }
   }
 
-  private section(section: ContractSection): ContractSection {
+  /**
+   * Whatever is visible of something that may repeat: once for every item it repeats for, each with its own ID and
+   * resolved with its own item in scope.
+   */
+  private repeated<T extends Repeatable, R>(item: T, resolve: (resolver: Resolver, id: string) => R): R[] {
+    const instances = this.evaluator.instances(item.$each)
+
+    return instances.flatMap((evaluator, index) => {
+      const resolver = item.$each == null ? this : this.instance(evaluator, index)
+      if (!resolver.visible(item.$if)) { return [] }
+      return [resolve(resolver, item.id + resolver.suffix)]
+    })
+  }
+
+  // What's inside a repetition gets the same suffix to its ID, as it's in the contract more than once as well.
+  private instance(evaluator: ContractEvaluator, index: number): Resolver {
+    const resolver = new Resolver(evaluator, this.options, Each.instanceId(this.suffix, index))
+    resolver.form = this.form
+    return resolver
+  }
+
+  private section(section: ContractSection, id: string): ContractSection {
     const common = {
-      id:        section.id,
+      id,
       name:      section.name,
       numbering: section.numbering,
       ...this.required(section.required),
@@ -129,12 +150,12 @@ class Resolver {
         type:      'definition-list',
         preamble:  this.body(section.preamble),
         postamble: this.body(section.postamble),
-        items:     section.items.filter(it => this.visible(it.$if)).map(it => ({
-          id:   it.id,
+        items:     section.items.flatMap(it => this.repeated(it, (resolver, id) => ({
+          id,
           term: it.term,
-          body: this.richText(it.body),
+          body: resolver.richText(it.body),
           ...this.required(it.required),
-        })),
+        }))),
       }
 
     case 'signature':
@@ -144,7 +165,7 @@ class Resolver {
         preamble:  this.body(section.preamble),
         postamble: this.body(section.postamble),
         parties:   section.parties.filter(it => this.visible(it.$if)).map(it => ({
-          id:      it.id,
+          id:      it.id + this.suffix,
           label:   it.label,
           details: this.richText(it.details),
           ...this.required(it.required),
@@ -154,12 +175,12 @@ class Resolver {
   }
 
   private listItems(items: ListItem[]): ListItem[] {
-    return items.filter(it => this.visible(it.$if)).map(it => ({
-      id:    it.id,
-      text:  this.richText(it.text),
-      items: this.listItems(it.items ?? []),
+    return items.flatMap(it => this.repeated(it, (resolver, id) => ({
+      id,
+      text:  resolver.richText(it.text),
+      items: resolver.listItems(it.items ?? []),
       ...this.required(it.required),
-    }))
+    })))
   }
 
   private body(body: ConditionalBody | undefined): ConditionalBody | undefined {
@@ -213,6 +234,12 @@ class Resolver {
 
   // #endregion
 
+}
+
+interface Repeatable {
+  id:     string
+  $if?:   Conditional
+  $each?: Each
 }
 
 interface RichTextNode {

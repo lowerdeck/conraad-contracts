@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid'
 import { z } from 'zod'
 import { conditional } from './conditional'
+import { each } from './each'
 
 export const contractSectionCommon = {
   id:   id(),
@@ -8,6 +9,7 @@ export const contractSectionCommon = {
 
   numbering: z.string().max(32).nullable().optional(),
   $if:       conditional().optional(),
+  $each:     each().optional(),
 
   /** Whether it has to stay in contracts drawn up from the template, rather than being removable. */
   required: z.boolean().optional(),

@@ -15,6 +15,22 @@ export function formatValue(value: unknown, options: FormatOptions): string {
   return String(value)
 }
 
+/**
+ * A list that reads like "A, B en C", of the items or of the given property of each. Empty items are left out.
+ */
+export function formatList(value: unknown, key: unknown, conjunction: unknown, locale: string = contractLocale): string {
+  if (!Array.isArray(value)) { return value == null ? '' : String(value) }
+
+  const items = value
+    .map(it => typeof key === 'string' && it != null && typeof it === 'object' ? it[key] : it)
+    .filter(it => it != null && it !== '')
+    .map(it => it instanceof DateTime ? formatDate(it, locale) : String(it))
+
+  if (items.length <= 1) { return items.join('') }
+  const last = items.pop()
+  return `${items.join(', ')} ${typeof conjunction === 'string' ? conjunction : 'en'} ${last}`
+}
+
 export function formatDate(date: DateTime, locale: string = contractLocale): string {
   return date.setLocale(locale).toLocaleString(DateTime.DATE_FULL)
 }
