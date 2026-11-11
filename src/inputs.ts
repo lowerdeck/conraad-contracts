@@ -1,6 +1,7 @@
 /**
  * The values that are known for every contract from its assignment, its production and role, the contractor and the
- * producing organisation, and the producer's user who draws it up (or, once it's sent out for signing, signs it).
+ * producing organisation, and who signs for it: the organisation's signer, or else the producer's user who draws it
+ * up, until it's sent out for signing, after which it's whoever it was sent to.
  * They're available in expressions by their full path, like `contractor.user.full_name`, so templates don't need
  * form fields for them.
  */
@@ -66,16 +67,15 @@ export const contractInputs: ContractInput[] = [
     ],
   },
   {
-    root:       'user',
+    root:       'signer',
     properties: [
-      {path: 'first_name', type: 'text'},
-      {path: 'last_name', type: 'text'},
-      {path: 'full_name', type: 'text'},
+      {path: 'name', type: 'text'},
+      {path: 'email', type: 'text'},
     ],
   },
 ]
 
-export type ContractInputRoot = 'assignment' | 'production' | 'role' | 'contractor' | 'organisation' | 'user'
+export type ContractInputRoot = 'assignment' | 'production' | 'role' | 'contractor' | 'organisation' | 'signer'
 
 export interface ContractInput {
   root:       ContractInputRoot
