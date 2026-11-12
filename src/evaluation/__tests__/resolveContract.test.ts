@@ -47,8 +47,8 @@ describe('resolveContract', () => {
     const body = paragraph(
       expression('missing'),
       expression('remarks'),
-      expression('organisation.kvk_nummer'),
-      expression('organisation.kvk_nummer', {empty: 'placeholder'}),
+      expression('legal_entity.kvk_nummer'),
+      expression('legal_entity.kvk_nummer', {empty: 'placeholder'}),
     )
     const form = {fieldsets: [{fields: [
       {variable: {type: 'text', name: 'missing', title: 'Missing'}},
@@ -58,10 +58,10 @@ describe('resolveContract', () => {
 
     expect((result.sections[0] as TextSection).body).toEqual(paragraph(
       {type: 'interpolated', attrs: {text: 'Missing', status: 'unfilled'}},
-      {type: 'interpolated', attrs: {text: 'organisation.kvk_nummer', status: 'unfilled'}},
+      {type: 'interpolated', attrs: {text: 'legal_entity.kvk_nummer', status: 'unfilled'}},
       {type: 'interpolated', attrs: {text: '________', status: 'missing'}},
     ))
-    expect(unfilledValues(result)).toEqual(['Missing', 'organisation.kvk_nummer'])
+    expect(unfilledValues(result)).toEqual(['Missing', 'legal_entity.kvk_nummer'])
   })
 
   it('repeats sections and items for every item, with the item in scope', () => {

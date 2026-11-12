@@ -4,7 +4,7 @@ import { contractSectionCommon, richText, RichText } from './common'
 
 /**
  * Who enter into the contract: always the producer first, and the contractor second. Their numbers are all that's
- * fixed, and all texts start out with the details of the organisation and the contractor's profile. The contractor
+ * fixed, and all texts start out with the details of the legal entity and the contractor's profile. The contractor
  * has a text for each employment type, of which `contractor` is the one for a natural person (and the fallback).
  */
 export const partiesSection = z.object({
@@ -78,15 +78,15 @@ function defaultPreamble(): RichText {
 function defaultProducer(): RichText {
   return doc([
     paragraph([
-      expression('organisation.name', true),
+      expression('legal_entity.name', true),
       text(', gevestigd te '),
-      expression('organisation.city'),
+      expression('legal_entity.city'),
       text(' ('),
-      expression('organisation.postal_code'),
+      expression('legal_entity.postal_code'),
       text(') aan de '),
-      expression('organisation.address_line_1'),
+      expression('legal_entity.address_line_1'),
       text(`, ${tradeRegister} `),
-      expression('organisation.kvk_nummer'),
+      expression('legal_entity.kvk_nummer'),
       text(', hierbij rechtsgeldig vertegenwoordigd door '),
       expression('signer.name'),
       text(', hierna te noemen “Opdrachtgever”;'),
