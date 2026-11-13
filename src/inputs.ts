@@ -1,6 +1,6 @@
 /**
  * The values that are known for every contract from its assignment, its production and role, the contractor and the
- * legal entity it's drawn up for, and who signs for it: the legal entity's signer, or else the producer's user who draws it
+ * legal entity it's drawn up for (with its contact persons, where billing falls back to the general one), and who signs for it: the legal entity's signer, or else the producer's user who draws it
  * up, until it's sent out for signing, after which it's whoever it was sent to.
  * They're available in expressions by their full path, like `contractor.user.full_name`, so templates don't need
  * form fields for them.
@@ -64,6 +64,10 @@ export const contractInputs: ContractInput[] = [
       {path: 'postal_code', type: 'text'},
       {path: 'city', type: 'text'},
       {path: 'kvk_nummer', type: 'text'},
+      {path: 'contact.name', type: 'text'},
+      {path: 'contact.email', type: 'text'},
+      {path: 'billing_contact.name', type: 'text'},
+      {path: 'billing_contact.email', type: 'text'},
     ],
   },
   {
