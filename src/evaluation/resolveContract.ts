@@ -19,17 +19,14 @@ import { formatValue, FormatOptions } from './values'
 /**
  * The contract as it reads: the structure of its template with its edits applied, without anything that is hidden,
  * and with every interpolation replaced by its text. Nothing is left to evaluate, so it holds no form, conditions or
- * expressions either.
+ * expressions either. Sections and items keep their `required` flag, for whoever edits it.
  */
 export function resolveContract(structure: ContractStructure, edits: ContractEdit[], evaluator: ContractEvaluator, options: ResolveOptions): ContractStructure {
   const resolver = new Resolver(evaluator, options)
   return resolver.resolve({...structure, sections: applyEdits(structure.sections, edits).sections})
 }
 
-export interface ResolveOptions extends FormatOptions {
-  /** Whether sections and items keep their `required` flag, for whoever edits the contract. */
-  keepRequired?: boolean
-}
+export type ResolveOptions = FormatOptions
 
 /**
  * Replaces an interpolation in rich text, and reads like its text.
@@ -194,7 +191,7 @@ class Resolver {
   }
 
   private required(required: boolean | undefined) {
-    return this.options.keepRequired && required ? {required} : {}
+    return required ? {required} : {}
   }
 
   private visible(conditional: Conditional | undefined) {

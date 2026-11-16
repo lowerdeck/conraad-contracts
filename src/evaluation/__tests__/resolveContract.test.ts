@@ -109,13 +109,13 @@ describe('resolveContract', () => {
     ))
   })
 
-  it('leaves out the form and required flags', () => {
+  it('leaves out the form, but keeps the required flags', () => {
     const result = resolve(structure({
       sections: [{id: 'a', type: 'text', body: null, required: true}],
     }), {})
 
     expect(result.form.fieldsets).toEqual([])
-    expect(result.sections[0].required).toBeUndefined()
+    expect(result.sections[0].required).toBe(true)
   })
 
 })
