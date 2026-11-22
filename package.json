@@ -1,5 +1,5 @@
 {
-  "name": "conraad-contracts",
+  "name": "@lowerdeck/conraad-contracts",
   "version": "1.0.0",
   "description": "Contracts engine for Conraad.",
   "author": "Joost Lubach",
