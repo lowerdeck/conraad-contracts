@@ -1,4 +1,4 @@
-import { errorMessage } from 'ytil'
+import { errorMessage } from '@mosdev/ytil'
 import { Evaluator } from '../evaluator'
 import { ParsedExpression } from '../expressions'
 import { contractInputs } from '../inputs'

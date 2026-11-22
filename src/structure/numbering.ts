@@ -1,5 +1,5 @@
 import { clamp, isEqual } from 'lodash'
-import { objectEntries } from 'ytil'
+import { objectEntries } from '@mosdev/ytil'
 import { z } from 'zod'
 import { id } from './common'
 

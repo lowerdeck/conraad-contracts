@@ -1,7 +1,7 @@
 import jsepObject from '@jsep-plugin/object'
 import jsepSpread from '@jsep-plugin/spread'
 import jsep from 'jsep'
-import { isFunction } from 'ytil'
+import { isFunction } from '@mosdev/ytil'
 
 jsep.plugins.register(jsepObject)
 jsep.plugins.register(jsepSpread)

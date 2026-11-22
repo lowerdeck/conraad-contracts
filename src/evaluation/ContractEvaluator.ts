@@ -1,5 +1,5 @@
 import { DateTime } from 'luxon'
-import { errorMessage } from 'ytil'
+import { errorMessage } from '@mosdev/ytil'
 import { EmploymentType, isEmploymentType } from '../employment-type'
 import { Evaluator } from '../evaluator'
 import { parseExpression } from '../expressions'

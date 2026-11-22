@@ -1,6 +1,6 @@
 import { Property } from '@jsep-plugin/object'
 import { SpreadElement } from '@jsep-plugin/spread'
-import { errorMessage, isFunction } from 'ytil'
+import { errorMessage, isFunction } from '@mosdev/ytil'
 import { parseExpression, ParsedExpression, parseFilterSegment } from './expressions'
 import { blacklist, global, jsep } from './jsep'
 import { MissingValue } from './missing-value'

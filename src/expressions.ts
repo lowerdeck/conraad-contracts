@@ -1,4 +1,4 @@
-import { StringStream } from 'unicode'
+import { StringStream } from '@mosdev/unicode'
 import { jsep } from './jsep'
 
 export function parseExpression(expression: string): ParsedExpression {
