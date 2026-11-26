@@ -1,27 +1,28 @@
 import { Conditional } from './conditional'
 import { Form, FormField, FormFieldset, FormSide } from './form'
-import { InputVariable } from './variable'
+import { ChoiceOption, InputVariable } from './variable'
 
 /**
  * Checks the values filled in on a form: required fields must have a value, and values must respect their field's
- * validation. Fields of a fieldset that doesn't apply, or is switched off, are left out. Values that are absent fall
- * back to their field's default. With a side, only the fieldsets of that side are checked.
+ * validation. Fields of a fieldset that doesn't apply, or is switched off, are left out, and a choice must be one of
+ * the options that apply. Values that are absent fall back to their field's default. With a side, only the fieldsets
+ * of that side are checked.
  */
-export function validateFormValues(form: Form, values: Record<string, unknown>, applies: (conditional: Conditional | undefined) => boolean = () => true, side?: FormSide): FormValueIssue[] {
+export function validateFormValues(form: Form, values: Record<string, unknown>, applies: Applies = () => true, side?: FormSide): FormValueIssue[] {
   const issues: FormValueIssue[] = []
 
   for (const fieldset of form.fieldsets) {
     if (side != null && FormFieldset.side(fieldset) !== side) { continue }
     if (!applies(fieldset.$if)) { continue }
-    if (fieldset.toggle != null && resolveValue(fieldset.toggle, values) !== true) { continue }
+    if (fieldset.toggle != null && resolveValue(fieldset.toggle, values, applies) !== true) { continue }
 
     if (fieldset.repeat != null) {
-      issues.push(...validateItems(fieldset, values[fieldset.repeat.name]))
+      issues.push(...validateItems(fieldset, values[fieldset.repeat.name], applies))
       continue
     }
 
     for (const field of fieldset.fields) {
-      const issue = validateField(field, resolveValue(field.variable, values))
+      const issue = validateField(field, resolveValue(field.variable, values, applies), applies)
       if (issue != null) {
         issues.push(issue)
       }
@@ -48,7 +49,9 @@ export type FormValueIssueCode =
   | 'too_many_items'
   | 'invalid_value'
 
-function validateItems(fieldset: FormFieldset, value: unknown): FormValueIssue[] {
+type Applies = (conditional: Conditional | undefined) => boolean
+
+function validateItems(fieldset: FormFieldset, value: unknown, applies: Applies): FormValueIssue[] {
   const {name, min, max} = fieldset.repeat!
   const items = value ?? []
   if (!Array.isArray(items)) { return [{name, code: 'invalid_value'}] }
@@ -64,7 +67,7 @@ function validateItems(fieldset: FormFieldset, value: unknown): FormValueIssue[]
     }
 
     for (const field of fieldset.fields) {
-      const issue = validateField(field, resolveValue(field.variable, item))
+      const issue = validateField(field, resolveValue(field.variable, item, applies), applies)
       if (issue != null) {
         issues.push({...issue, name: `${name}.${index}.${field.variable.name}`})
       }
@@ -73,12 +76,14 @@ function validateItems(fieldset: FormFieldset, value: unknown): FormValueIssue[]
   return issues
 }
 
-function resolveValue(variable: InputVariable, values: Record<string, unknown>): unknown {
+// A default option that doesn't apply isn't chosen.
+function resolveValue(variable: InputVariable, values: Record<string, unknown>, applies: Applies): unknown {
   if (variable.name in values) { return values[variable.name] }
+  if (variable.type === 'choice' && !ChoiceOption.applicable(variable.options, applies).some(it => it.value === variable.default)) { return null }
   return variable.default ?? null
 }
 
-function validateField(field: FormField, value: unknown): FormValueIssue | null {
+function validateField(field: FormField, value: unknown, applies: Applies): FormValueIssue | null {
   const {variable} = field
   const issue = (code: FormValueIssueCode, params?: FormValueIssue['params']): FormValueIssue => ({name: variable.name, code, params})
 
@@ -109,7 +114,7 @@ function validateField(field: FormField, value: unknown): FormValueIssue | null 
     return typeof value === 'string' && isoDate.test(value) && !Number.isNaN(Date.parse(value)) ? null : issue('invalid_value')
 
   case 'choice':
-    return variable.options.some(it => it.value === value) ? null : issue('invalid_value')
+    return ChoiceOption.applicable(variable.options, applies).some(it => it.value === value) ? null : issue('invalid_value')
   }
 }
 

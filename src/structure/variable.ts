@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { expression } from './common'
+import { Conditional, conditional } from './conditional'
 
 const variableCommon = z.object({
   name:     z.string().max(64).min(1),
@@ -10,6 +11,9 @@ const variableCommon = z.object({
 export const choiceOption = z.object({
   value: z.string().max(255),
   label: z.string().max(255),
+
+  /** When the option may be chosen at all, like only for some projects. */
+  $if: conditional().optional(),
 })
 
 export const textVariable = z.object({
@@ -107,4 +111,13 @@ export type ArrayVariable = z.output<typeof arrayVariable>
 /** The array variable of a repeating fieldset, along with the variables of its fields, which each item has. */
 export interface RepeatVariable extends ArrayVariable {
   fields: InputVariable[]
+}
+
+export namespace ChoiceOption {
+
+  /** The options that may be chosen, of which the conditions hold. */
+  export function applicable(options: ChoiceOption[], applies: (conditional: Conditional | undefined) => boolean): ChoiceOption[] {
+    return options.filter(it => applies(it.$if))
+  }
+
 }

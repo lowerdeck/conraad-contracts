@@ -76,6 +76,17 @@ describe('validateFormValues', () => {
     expect(validateFormValues(form, {}, () => true)).toEqual([{name: 'rate', code: 'required'}])
   })
 
+  it('only accepts choices of which the option applies, also as a default', () => {
+    const options = [{value: 'a', label: 'A', $if: [['project.name == "X"']]}, {value: 'b', label: 'B'}]
+    const form = formOf(fieldset([field({type: 'choice', name: 'kind', default: 'a', options})]))
+    const applies = (conditional: unknown) => conditional == null
+
+    expect(validateFormValues(form, {kind: 'a'})).toEqual([])
+    expect(validateFormValues(form, {kind: 'a'}, applies)).toEqual([{name: 'kind', code: 'invalid_value'}])
+    expect(validateFormValues(form, {}, applies)).toEqual([{name: 'kind', code: 'required'}])
+    expect(validateFormValues(form, {kind: 'b'}, applies)).toEqual([])
+  })
+
   it('only checks the fieldsets of the given side', () => {
     const form = formOf(
       fieldset([field({type: 'text', name: 'name'})]),
