@@ -1,7 +1,8 @@
 import { z } from 'zod'
 import { id } from './common'
 import { conditional } from './conditional'
-import { ArrayVariable, arrayVariable, booleanVariable, CalculatedVariable, calculatedVariable, inputVariable, RepeatVariable, Variable } from './variable'
+import { Conditional } from './conditional'
+import { ArrayVariable, arrayVariable, booleanVariable, CalculatedVariable, calculatedVariable, ChoiceOption, inputVariable, RepeatVariable, Variable } from './variable'
 
 export const formField = z.object({
   id:       id(),
@@ -180,6 +181,20 @@ export namespace FormFieldset {
       ...fieldset.toggle == null ? [] : [fieldset.toggle.name],
       ...fieldset.repeat == null ? fieldset.fields.map(it => it.variable.name) : [fieldset.repeat.name],
     ]
+  }
+
+  /**
+   * The fieldset with only the options of its choice fields that apply, for a form that can't check their conditions
+   * itself.
+   */
+  export function withApplicableOptions(fieldset: FormFieldset, applies: (conditional: Conditional | undefined) => boolean): FormFieldset {
+    return {
+      ...fieldset,
+      fields: fieldset.fields.map(field => field.variable.type !== 'choice' ? field : {
+        ...field,
+        variable: {...field.variable, options: ChoiceOption.applicable(field.variable.options, applies)},
+      }),
+    }
   }
 
   export function repeatVariable(fieldset: FormFieldset): RepeatVariable | null {
