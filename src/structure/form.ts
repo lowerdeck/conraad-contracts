@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { id } from './common'
 import { conditional } from './conditional'
 import { Conditional } from './conditional'
-import { ArrayVariable, arrayVariable, booleanVariable, CalculatedVariable, calculatedVariable, ChoiceOption, inputVariable, RepeatVariable, Variable } from './variable'
+import { booleanVariable, CalculatedVariable, calculatedVariable, ChoiceOption, CollectionVariable, collectionVariable, inputVariable, RepeatVariable, Variable } from './variable'
 
 export const formField = z.object({
   id:       id(),
@@ -37,8 +37,9 @@ export const formFieldset = z.object({
 
   /**
    * Makes the fieldset repeat: its fields are filled in for any number of items, which are stored in this variable.
+   * In an array, items are added freely. In a map, there's at most one item for each of its keys.
    */
-  repeat: arrayVariable.nullable().optional(),
+  repeat: collectionVariable.nullable().optional(),
 
   fields: z.array(formField).default([]),
 
@@ -100,7 +101,7 @@ export namespace Form {
    * Every variable in the form as it's stored, including the arrays of repeating fieldsets and the fields of their
    * items. Their names are unique throughout the form.
    */
-  export function allVariables(form: Form): (Variable | ArrayVariable)[] {
+  export function allVariables(form: Form): (Variable | CollectionVariable)[] {
     return [
       ...form.fieldsets.flatMap(fieldset => [
         ...fieldset.toggle == null ? [] : [fieldset.toggle],
@@ -184,12 +185,14 @@ export namespace FormFieldset {
   }
 
   /**
-   * The fieldset with only the options of its choice fields that apply, for a form that can't check their conditions
-   * itself.
+   * The fieldset with only the options of its choice fields and the keys of its map that apply, for a form that can't
+   * check their conditions itself.
    */
   export function withApplicableOptions(fieldset: FormFieldset, applies: (conditional: Conditional | undefined) => boolean): FormFieldset {
+    const {repeat} = fieldset
     return {
       ...fieldset,
+      repeat: repeat?.type === 'map' ? {...repeat, keys: ChoiceOption.applicable(repeat.keys, applies)} : repeat,
       fields: fieldset.fields.map(field => field.variable.type !== 'choice' ? field : {
         ...field,
         variable: {...field.variable, options: ChoiceOption.applicable(field.variable.options, applies)},

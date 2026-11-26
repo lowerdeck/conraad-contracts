@@ -109,6 +109,37 @@ describe('resolveContract', () => {
     ))
   })
 
+  it('repeats for the keys of a map that have an item, in the order of the keys, with the key and its label', () => {
+    const body = paragraph(expression('rate.$label'), expression('rate.amount'))
+    const result = resolve(structure({
+      sections: [
+        {id: 'a', type: 'text', body, $each: {in: 'rates', as: 'rate'}},
+        {id: 'b', type: 'text', body: paragraph(expression('rates | list("$label")')), $if: [['rates']]},
+        {id: 'c', type: 'text', body: paragraph(expression('rates.night.amount'))},
+      ],
+    }), {rates: {night: {amount: 2}, weekend: {amount: 1}, gone: {amount: 3}}})
+
+    expect(result.sections.map(it => it.id)).toEqual(['a~0', 'a~1', 'b', 'c'])
+    expect((result.sections[0] as TextSection).body).toEqual(paragraph(
+      {type: 'interpolated', attrs: {text: 'Weekend', status: 'value'}},
+      {type: 'interpolated', attrs: {text: '1', status: 'value'}},
+    ))
+    expect((result.sections[2] as TextSection).body).toEqual(paragraph(
+      {type: 'interpolated', attrs: {text: 'Weekend en Nacht', status: 'value'}},
+    ))
+    expect((result.sections[3] as TextSection).body).toEqual(paragraph(
+      {type: 'interpolated', attrs: {text: '2', status: 'value'}},
+    ))
+  })
+
+  it('counts an empty map as false in a condition', () => {
+    const result = resolve(structure({
+      sections: [{id: 'a', type: 'text', body: null, $if: [['rates']]}],
+    }), {rates: {}})
+
+    expect(result.sections).toEqual([])
+  })
+
   it('leaves out the form, but keeps the required flags', () => {
     const result = resolve(structure({
       sections: [{id: 'a', type: 'text', body: null, required: true}],
@@ -135,6 +166,13 @@ const variables: Variable[] = [
   {type: 'boolean', name: 'exclusive', title: 'Exclusive'},
   {type: 'text', name: 'missing', title: 'Missing'},
   {type: 'array', name: 'specialisms', title: 'Specialisme', fields: [{type: 'text', name: 'text', title: 'Tekst'}]},
+  {
+    type:   'map',
+    name:   'rates',
+    title:  'Tarief',
+    keys:   [{value: 'weekend', label: 'Weekend'}, {value: 'night', label: 'Nacht'}],
+    fields: [{type: 'number', name: 'amount', title: 'Bedrag', integer: true}],
+  },
 ]
 
 function structure(input: unknown): ContractStructure {

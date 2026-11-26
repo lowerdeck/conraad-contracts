@@ -4,7 +4,7 @@ import { EmploymentType, isEmploymentType } from '../employment-type'
 import { Evaluator } from '../evaluator'
 import { parseExpression } from '../expressions'
 import { MissingValue } from '../missing-value'
-import { Conditional, Each, InputVariable, Variable } from '../structure'
+import { Conditional, Each, InputVariable, RepeatVariable, Variable } from '../structure'
 import { evaluateConditional } from './conditions'
 import { formatCurrency, formatDate, formatList, toDateTime } from './values'
 
@@ -62,7 +62,7 @@ export class ContractEvaluator {
 
   /**
    * An evaluator for every repetition of something that repeats, with its item in scope. Without `$each`, it's just
-   * this one.
+   * this one. A map repeats for the keys that have an item, in the order of its keys.
    */
   public instances(each: Each | undefined): ContractEvaluator[] {
     if (each == null) { return [this] }
@@ -73,10 +73,11 @@ export class ContractEvaluator {
     } catch {
       return []
     }
+    if (isPlainObject(items)) { items = Object.values(items) }
     if (!Array.isArray(items)) { return [] }
 
     const repeat = this.variableByPath(each.in)
-    const fields = repeat?.type === 'array' && 'fields' in repeat ? repeat.fields : []
+    const fields = repeat != null && 'fields' in repeat ? RepeatVariable.itemFields(repeat) : []
     return items.map(item => this.scoped(each.as, itemValue(item, fields), fields))
   }
 
@@ -126,6 +127,9 @@ export class ContractEvaluator {
     if (variable.type === 'date' && typeof value === 'string') {
       return DateTime.fromISO(value)
     }
+    if (variable.type === 'map') {
+      return mapItems(variable, value)
+    }
     return value
   }
 
@@ -172,6 +176,24 @@ export function variableValue(variable: Variable, values: Record<string, unknown
     return values[variable.name]
   }
   return 'default' in variable ? variable.default ?? null : null
+}
+
+// The items of a map in the order of its keys, each with its key and the label of its key, like `{$key: 'night',
+// $label: 'Nacht', amount: 100}`. Items for keys that aren't there (anymore) are left out.
+function mapItems(variable: RepeatVariable & {type: 'map'}, value: unknown): Record<string, unknown> {
+  if (!isPlainObject(value)) { return {} }
+
+  const result: Record<string, unknown> = {}
+  for (const key of variable.keys) {
+    const item = value[key.value]
+    if (!isPlainObject(item)) { continue }
+    result[key.value] = itemValue({...item, $key: key.value, $label: key.label}, variable.fields)
+  }
+  return result
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype
 }
 
 // Dates of an item are stored as ISO dates, like those of the form.

@@ -61,15 +61,22 @@ export function evaluateCondition(condition: Condition, evaluate: ExpressionEval
 
 export type ExpressionEvaluate = (expression: string) => unknown
 
-// Like in JavaScript, except that an empty list is false.
+// Like in JavaScript, except that an empty list or map is false.
 function isTruthy(value: unknown) {
-  return Array.isArray(value) ? value.length > 0 : !!value
+  if (Array.isArray(value)) { return value.length > 0 }
+  if (isPlainObject(value)) { return Object.keys(value).length > 0 }
+  return !!value
 }
 
 function isBlank(value: unknown) {
   if (value == null || value === '') { return true }
   if (Array.isArray(value)) { return value.length === 0 }
+  if (isPlainObject(value)) { return Object.keys(value).length === 0 }
   return false
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return value != null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype
 }
 
 // Dates are compared by day, as that's what contracts care about.

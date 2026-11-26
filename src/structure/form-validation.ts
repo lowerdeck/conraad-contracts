@@ -1,6 +1,6 @@
 import { Conditional } from './conditional'
 import { Form, FormField, FormFieldset, FormSide } from './form'
-import { ChoiceOption, InputVariable } from './variable'
+import { ArrayVariable, ChoiceOption, InputVariable, MapVariable } from './variable'
 
 /**
  * Checks the values filled in on a form: required fields must have a value, and values must respect their field's
@@ -33,7 +33,7 @@ export function validateFormValues(form: Form, values: Record<string, unknown>, 
 }
 
 export interface FormValueIssue {
-  /** The name of the field's variable, or for a field of an item, its path like `specialisms.0.name`. */
+  /** The name of the field's variable, or for a field of an item, its path like `specialisms.0.name` or `rates.night.amount`. */
   name:    string
   code:    FormValueIssueCode
   params?: {minimum?: number, maximum?: number}
@@ -52,7 +52,14 @@ export type FormValueIssueCode =
 type Applies = (conditional: Conditional | undefined) => boolean
 
 function validateItems(fieldset: FormFieldset, value: unknown, applies: Applies): FormValueIssue[] {
-  const {name, min, max} = fieldset.repeat!
+  const repeat = fieldset.repeat!
+  return repeat.type === 'map'
+    ? validateMapItems(fieldset, repeat, value, applies)
+    : validateArrayItems(fieldset, repeat, value, applies)
+}
+
+function validateArrayItems(fieldset: FormFieldset, repeat: ArrayVariable, value: unknown, applies: Applies): FormValueIssue[] {
+  const {name, min, max} = repeat
   const items = value ?? []
   if (!Array.isArray(items)) { return [{name, code: 'invalid_value'}] }
 
@@ -61,19 +68,31 @@ function validateItems(fieldset: FormFieldset, value: unknown, applies: Applies)
   if (max != null && items.length > max) { issues.push({name, code: 'too_many_items', params: {maximum: max}}) }
 
   items.forEach((item, index) => {
-    if (item == null || typeof item !== 'object') {
-      issues.push({name: `${name}.${index}`, code: 'invalid_value'})
-      return
-    }
-
-    for (const field of fieldset.fields) {
-      const issue = validateField(field, resolveValue(field.variable, item, applies), applies)
-      if (issue != null) {
-        issues.push({...issue, name: `${name}.${index}.${field.variable.name}`})
-      }
-    }
+    issues.push(...validateItem(fieldset, `${name}.${index}`, item, applies))
   })
   return issues
+}
+
+// Not every key needs an item, but an item must be for a key that applies.
+function validateMapItems(fieldset: FormFieldset, repeat: MapVariable, value: unknown, applies: Applies): FormValueIssue[] {
+  const {name} = repeat
+  const items = value ?? {}
+  if (typeof items !== 'object' || Array.isArray(items)) { return [{name, code: 'invalid_value'}] }
+
+  const keys = new Set(ChoiceOption.applicable(repeat.keys, applies).map(it => it.value))
+  return Object.entries(items).flatMap(([key, item]) => {
+    if (!keys.has(key)) { return [{name: `${name}.${key}`, code: 'invalid_value' as const}] }
+    return validateItem(fieldset, `${name}.${key}`, item, applies)
+  })
+}
+
+function validateItem(fieldset: FormFieldset, path: string, item: unknown, applies: Applies): FormValueIssue[] {
+  if (item == null || typeof item !== 'object') { return [{name: path, code: 'invalid_value'}] }
+
+  return fieldset.fields.flatMap(field => {
+    const issue = validateField(field, resolveValue(field.variable, item as Record<string, unknown>, applies), applies)
+    return issue == null ? [] : [{...issue, name: `${path}.${field.variable.name}`}]
+  })
 }
 
 // A default option that doesn't apply isn't chosen.
