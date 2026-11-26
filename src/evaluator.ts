@@ -139,12 +139,8 @@ export class Evaluator {
 
     case 'MemberExpression': {
       const expr = node as jsep.MemberExpression
-      if (expr.computed) {
-        throw new Error('Computed member access not allowed')
-      }
-
-      const prop = expr.property?.name
-      if (typeof prop !== 'string') {
+      const prop = memberProperty(expr)
+      if (prop == null) {
         throw new Error('Invalid member property')
       }
       if (blacklist.has(prop)) {
@@ -300,7 +296,7 @@ export class Evaluator {
       const expr = node as jsep.MemberExpression
 
       const obj = this.evaluateNode(expr.object, depth + 1)
-      const prop = expr.property.name as string
+      const prop = memberProperty(expr)!
 
       if (blacklist.has(prop)) {
         throw new Error(`Forbidden property: ${prop}`)
@@ -402,4 +398,15 @@ export class EvaluatorError extends Error {
   }
 
 
+}
+
+/**
+ * The property of a member expression: a name, like `rates.night`, or a string, like `rates["Nog een"]`. Other
+ * computed properties aren't allowed.
+ */
+export function memberProperty(expr: jsep.MemberExpression): string | null {
+  if (!expr.computed) {
+    return typeof expr.property?.name === 'string' ? expr.property.name : null
+  }
+  return expr.property?.type === 'Literal' && typeof expr.property.value === 'string' ? expr.property.value : null
 }

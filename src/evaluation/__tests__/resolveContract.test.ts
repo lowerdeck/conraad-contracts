@@ -109,15 +109,15 @@ describe('resolveContract', () => {
     ))
   })
 
-  it('repeats for the keys of a map that have an item, in the order of the keys, with the key and its label', () => {
-    const body = paragraph(expression('rate.$label'), expression('rate.amount'))
+  it('repeats for the keys of a map that have an item, in the order of the keys, with the key', () => {
+    const body = paragraph(expression('rate.$key'), expression('rate.amount'))
     const result = resolve(structure({
       sections: [
         {id: 'a', type: 'text', body, $each: {in: 'rates', as: 'rate'}},
-        {id: 'b', type: 'text', body: paragraph(expression('rates | list("$label")')), $if: [['rates']]},
-        {id: 'c', type: 'text', body: paragraph(expression('rates.night.amount'))},
+        {id: 'b', type: 'text', body: paragraph(expression('rates | list("$key")')), $if: [['rates']]},
+        {id: 'c', type: 'text', body: paragraph(expression('rates["Nacht"].amount'))},
       ],
-    }), {rates: {night: {amount: 2}, weekend: {amount: 1}, gone: {amount: 3}}})
+    }), {rates: {Nacht: {amount: 2}, Weekend: {amount: 1}, Weg: {amount: 3}}})
 
     expect(result.sections.map(it => it.id)).toEqual(['a~0', 'a~1', 'b', 'c'])
     expect((result.sections[0] as TextSection).body).toEqual(paragraph(
@@ -170,7 +170,7 @@ const variables: Variable[] = [
     type:   'map',
     name:   'rates',
     title:  'Tarief',
-    keys:   [{value: 'weekend', label: 'Weekend'}, {value: 'night', label: 'Nacht'}],
+    keys:   [{value: 'Weekend'}, {value: 'Nacht'}],
     fields: [{type: 'number', name: 'amount', title: 'Bedrag', integer: true}],
   },
 ]
