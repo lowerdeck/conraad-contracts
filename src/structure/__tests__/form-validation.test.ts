@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { Form, formField, FormField, formFieldset, FormFieldset } from '../form'
 import { validateFormValues } from '../form-validation'
-import { arrayVariable, booleanVariable, inputVariable } from '../variable'
+import { arrayVariable, booleanVariable, inputVariable, mapVariable } from '../variable'
 
 describe('validateFormValues', () => {
 
@@ -40,6 +40,24 @@ describe('validateFormValues', () => {
       {name: 'specialisms.1.text', code: 'required'},
     ])
     expect(validateFormValues(form, {specialisms: [{text: 'A'}]})).toEqual([])
+  })
+
+  it('checks the items of a map, which must be for a key that applies, and the fields of each', () => {
+    const repeat = mapVariable.parse({type: 'map', name: 'rates', title: 'Tarief', keys: [
+      {value: 'weekend', label: 'Weekend'},
+      {value: 'night', label: 'Nacht', $if: [['shoots_at_night']]},
+    ]})
+    const form = formOf(fieldset([field({type: 'number', name: 'amount'})], {repeat}))
+    const applies = (conditional: unknown) => conditional == null
+
+    expect(validateFormValues(form, {})).toEqual([])
+    expect(validateFormValues(form, {rates: []})).toEqual([{name: 'rates', code: 'invalid_value'}])
+    expect(validateFormValues(form, {rates: {weekend: {}, night: {amount: 1}, other: {amount: 1}}}, applies)).toEqual([
+      {name: 'rates.weekend.amount', code: 'required'},
+      {name: 'rates.night', code: 'invalid_value'},
+      {name: 'rates.other', code: 'invalid_value'},
+    ])
+    expect(validateFormValues(form, {rates: {night: {amount: 1}}})).toEqual([])
   })
 
   it('counts a switch that is not set as off, but requires a yes/no select', () => {

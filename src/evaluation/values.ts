@@ -16,9 +16,13 @@ export function formatValue(value: unknown, options: FormatOptions): string {
 }
 
 /**
- * A list that reads like "A, B en C", of the items or of the given property of each. Empty items are left out.
+ * A list that reads like "A, B en C", of the items or of the given property of each, like `$label` for the keys of a
+ * map. Empty items are left out.
  */
 export function formatList(value: unknown, key: unknown, conjunction: unknown, locale: string = contractLocale): string {
+  if (value != null && typeof value === 'object' && Object.getPrototypeOf(value) === Object.prototype) {
+    value = Object.values(value)
+  }
   if (!Array.isArray(value)) { return value == null ? '' : String(value) }
 
   const items = value

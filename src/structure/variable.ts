@@ -86,6 +86,16 @@ export const arrayVariable = z.object({
   max:  z.int().positive().optional(),
 }).extend(variableCommon.shape)
 
+// The items of a repeating fieldset by key, each an object with the values of its fields. Only the keys that are
+// filled in have an item, in the order of the keys.
+export const mapVariable = z.object({
+  type: z.literal('map'),
+  keys: z.array(choiceOption).default([]),
+}).extend(variableCommon.shape)
+
+// What the items of a repeating fieldset are stored in.
+export const collectionVariable = z.discriminatedUnion('type', [arrayVariable, mapVariable])
+
 // Anything that is filled in on the form, as opposed to calculated.
 export const inputVariable = z.discriminatedUnion('type', [
   textVariable,
@@ -107,11 +117,31 @@ export type ChoiceOption = z.output<typeof choiceOption>
 export type CalculatedVariable = z.output<typeof calculatedVariable>
 export type InputVariable = z.output<typeof inputVariable>
 export type ArrayVariable = z.output<typeof arrayVariable>
+export type MapVariable = z.output<typeof mapVariable>
+export type CollectionVariable = z.output<typeof collectionVariable>
 
-/** The array variable of a repeating fieldset, along with the variables of its fields, which each item has. */
-export interface RepeatVariable extends ArrayVariable {
+/** The variable of a repeating fieldset, along with the variables of its fields, which each item has. */
+export type RepeatVariable = CollectionVariable & {
   fields: InputVariable[]
 }
+
+export namespace RepeatVariable {
+
+  /**
+   * What's known of an item of a repeating fieldset where it's in scope: its fields, and for a map, its key and the
+   * label of its key.
+   */
+  export function itemFields(variable: RepeatVariable): InputVariable[] {
+    if (variable.type === 'array') { return variable.fields }
+    return [...variable.fields, ...mapItemFields]
+  }
+
+}
+
+const mapItemFields: InputVariable[] = [
+  {type: 'text', name: '$key', title: 'Waarde'},
+  {type: 'text', name: '$label', title: 'Keuze'},
+]
 
 export namespace ChoiceOption {
 
