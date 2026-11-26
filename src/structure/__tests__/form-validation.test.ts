@@ -44,8 +44,8 @@ describe('validateFormValues', () => {
 
   it('checks the items of a map, which must be for a key that applies, and the fields of each', () => {
     const repeat = mapVariable.parse({type: 'map', name: 'rates', title: 'Tarief', keys: [
-      {value: 'weekend', label: 'Weekend'},
-      {value: 'night', label: 'Nacht', $if: [['shoots_at_night']]},
+      {value: 'weekend'},
+      {value: 'night', $if: [['shoots_at_night']]},
     ]})
     const form = formOf(fieldset([field({type: 'number', name: 'amount'})], {repeat}))
     const applies = (conditional: unknown) => conditional == null
@@ -72,7 +72,7 @@ describe('validateFormValues', () => {
     const form = formOf(fieldset([
       field({type: 'number', name: 'share', integer: true, min: 0, max: 100}),
       field({type: 'text', name: 'code', min_length: 6}),
-      field({type: 'choice', name: 'kind', options: [{value: 'a', label: 'A'}]}),
+      field({type: 'choice', name: 'kind', options: [{value: 'a'}]}),
       field({type: 'date', name: 'start'}),
     ]))
 
@@ -95,7 +95,7 @@ describe('validateFormValues', () => {
   })
 
   it('only accepts choices of which the option applies, also as a default', () => {
-    const options = [{value: 'a', label: 'A', $if: [['project.name == "X"']]}, {value: 'b', label: 'B'}]
+    const options = [{value: 'a', $if: [['project.name == "X"']]}, {value: 'b'}]
     const form = formOf(fieldset([field({type: 'choice', name: 'kind', default: 'a', options})]))
     const applies = (conditional: unknown) => conditional == null
 

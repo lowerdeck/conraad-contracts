@@ -16,7 +16,7 @@ export function formatValue(value: unknown, options: FormatOptions): string {
 }
 
 /**
- * A list that reads like "A, B en C", of the items or of the given property of each, like `$label` for the keys of a
+ * A list that reads like "A, B en C", of the items or of the given property of each, like `$key` for the keys of a
  * map. Empty items are left out.
  */
 export function formatList(value: unknown, key: unknown, conjunction: unknown, locale: string = contractLocale): string {

@@ -8,9 +8,9 @@ const variableCommon = z.object({
   subtitle: z.string().max(1024).min(1).optional(),
 })
 
+// What's chosen is stored as it's shown.
 export const choiceOption = z.object({
-  value: z.string().max(255),
-  label: z.string().max(255),
+  value: z.string().min(1).max(255),
 
   /** When the option may be chosen at all, like only for some projects. */
   $if: conditional().optional(),
@@ -87,7 +87,8 @@ export const arrayVariable = z.object({
 }).extend(variableCommon.shape)
 
 // The items of a repeating fieldset by key, each an object with the values of its fields. Only the keys that are
-// filled in have an item, in the order of the keys.
+// filled in have an item, in the order of the keys. Keys are stored as they're shown, so they're referred to like
+// `rates["Nog een"]` when they aren't names.
 export const mapVariable = z.object({
   type: z.literal('map'),
   keys: z.array(choiceOption).default([]),
@@ -128,8 +129,7 @@ export type RepeatVariable = CollectionVariable & {
 export namespace RepeatVariable {
 
   /**
-   * What's known of an item of a repeating fieldset where it's in scope: its fields, and for a map, its key and the
-   * label of its key.
+   * What's known of an item of a repeating fieldset where it's in scope: its fields, and for a map, its key.
    */
   export function itemFields(variable: RepeatVariable): InputVariable[] {
     if (variable.type === 'array') { return variable.fields }
@@ -139,8 +139,7 @@ export namespace RepeatVariable {
 }
 
 const mapItemFields: InputVariable[] = [
-  {type: 'text', name: '$key', title: 'Waarde'},
-  {type: 'text', name: '$label', title: 'Keuze'},
+  {type: 'text', name: '$key', title: 'Keuze'},
 ]
 
 export namespace ChoiceOption {

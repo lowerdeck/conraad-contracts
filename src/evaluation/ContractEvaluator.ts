@@ -133,16 +133,13 @@ export class ContractEvaluator {
     return value
   }
 
-  // A plain reference to a choice variable shows the label of the chosen option rather than its value, and one to
-  // a currency variable shows the amount in its currency.
+  // A plain reference to a currency variable shows the amount in its currency.
   private formatForVariable(expression: string, value: unknown): string | null {
     const {mainRaw, filtersRaw} = parseExpression(expression)
     if (filtersRaw.length > 0) { return null }
 
     const variable = this.variableByPath(mainRaw)
     switch (variable?.type) {
-    case 'choice':
-      return variable.options.find(it => it.value === value)?.label ?? null
     case 'currency':
       return typeof value === 'number' ? formatCurrency(value, variable, this.options.locale) : null
     default:
@@ -178,8 +175,8 @@ export function variableValue(variable: Variable, values: Record<string, unknown
   return 'default' in variable ? variable.default ?? null : null
 }
 
-// The items of a map in the order of its keys, each with its key and the label of its key, like `{$key: 'night',
-// $label: 'Nacht', amount: 100}`. Items for keys that aren't there (anymore) are left out.
+// The items of a map in the order of its keys, each with its key, like `{$key: 'Nacht', amount: 100}`. Items for keys
+// that aren't there (anymore) are left out.
 function mapItems(variable: RepeatVariable & {type: 'map'}, value: unknown): Record<string, unknown> {
   if (!isPlainObject(value)) { return {} }
 
@@ -187,7 +184,7 @@ function mapItems(variable: RepeatVariable & {type: 'map'}, value: unknown): Rec
   for (const key of variable.keys) {
     const item = value[key.value]
     if (!isPlainObject(item)) { continue }
-    result[key.value] = itemValue({...item, $key: key.value, $label: key.label}, variable.fields)
+    result[key.value] = itemValue({...item, $key: key.value}, variable.fields)
   }
   return result
 }

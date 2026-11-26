@@ -10,6 +10,7 @@ describe('calculatedVariableError', () => {
     expect(error('production.title')).toBeNull()
     expect(error('contractor.user')).toBeNull()
     expect(error('assignment.start_date.year')).toBeNull()
+    expect(error('day_rate["Nog een"]')).toBeNull()
   })
 
   it('rejects an empty expression', () => {
@@ -20,7 +21,8 @@ describe('calculatedVariableError', () => {
     expect(error('day_rate * shooting_days +')).toMatchObject({code: 'syntax'})
     expect(error('day_rate shooting_days')).toMatchObject({code: 'syntax'})
     expect(error('day_rate = 3')).toMatchObject({code: 'syntax'})
-    expect(error('day_rate["x"]')).toMatchObject({code: 'syntax'})
+    expect(error('day_rate[shooting_days]')).toMatchObject({code: 'syntax'})
+    expect(error('day_rate["constructor"]')).toMatchObject({code: 'syntax'})
     expect(error('unknown_fn(day_rate)')).toMatchObject({code: 'syntax'})
   })
 

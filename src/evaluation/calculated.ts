@@ -1,5 +1,5 @@
 import { errorMessage } from '@mosdev/ytil'
-import { Evaluator } from '../evaluator'
+import { Evaluator, memberProperty } from '../evaluator'
 import { ParsedExpression } from '../expressions'
 import { contractInputs } from '../inputs'
 import { global, jsep } from '../jsep'
@@ -110,8 +110,8 @@ function memberPath(node: jsep.Expression): string | null {
   if (node.type === 'MemberExpression') {
     const expr = node as jsep.MemberExpression
     const object = memberPath(expr.object)
-    const prop = expr.property?.name
-    if (object == null || expr.computed || typeof prop !== 'string') { return null }
+    const prop = memberProperty(expr)
+    if (object == null || prop == null) { return null }
     return `${object}.${prop}`
   }
   return null
